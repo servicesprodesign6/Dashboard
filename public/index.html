@@ -117,7 +117,7 @@
   <div id="modal-detalhes" onclick="fecharModalDetalhes()" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
     <div onclick="event.stopPropagation()" class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
       <div class="relative aspect-video bg-zinc-950 flex items-center justify-center">
-        <img id="modal-img" src="" alt="" class="w-full h-full object-cover" onerror="this.style.display='none'" />
+        <img id="modal-img" src="" alt="" class="w-full h-full object-cover" />
         <span id="modal-ext" class="absolute top-3 right-3 bg-black/80 border border-zinc-700 text-xs font-bold uppercase px-2.5 py-1 rounded-md"></span>
       </div>
       <div class="p-6">
@@ -196,18 +196,55 @@
       }
     }
 
-    function resolverCover(item) {
-      if (item.url_cover && !item.url_cover.includes('SEU_DOMINIO_R2')) {
-        return item.url_cover;
+    // Gera lista ordenada de possíveis URLs da capa no bucket R2
+    function obterCandidatosCover(item) {
+      const lista = [];
+
+      if (item.url_cover) {
+        let u = item.url_cover.replace('https://SEU_DOMINIO_R2', R2_PUBLIC_URL);
+        if (u.startsWith(R2_PUBLIC_URL) && !u.includes(`${R2_PUBLIC_URL}/stl/`)) {
+          lista.push(u.replace(R2_PUBLIC_URL, `${R2_PUBLIC_URL}/stl`));
+        }
+        lista.push(u);
       }
-      if (item.url_cover && item.url_cover.includes('SEU_DOMINIO_R2')) {
-        return item.url_cover.replace('https://SEU_DOMINIO_R2', `${R2_PUBLIC_URL}/stl`);
-      }
+
       if (item.cover_relativa) {
         const rel = item.cover_relativa.replace(/^\/+/, '');
-        return rel.startsWith('stl/') ? `${R2_PUBLIC_URL}/${rel}` : `${R2_PUBLIC_URL}/stl/${rel}`;
+        lista.push(rel.startsWith('stl/') ? `${R2_PUBLIC_URL}/${rel}` : `${R2_PUBLIC_URL}/stl/${rel}`);
+        lista.push(`${R2_PUBLIC_URL}/${rel}`);
       }
-      return `${R2_PUBLIC_URL}/stl/covers/${item.chave}.jpg`;
+
+      if (item.cover_exata) {
+        lista.push(`${R2_PUBLIC_URL}/stl/covers/${item.cover_exata}`);
+        lista.push(`${R2_PUBLIC_URL}/covers/${item.cover_exata}`);
+      }
+
+      if (item.chave) {
+        lista.push(`${R2_PUBLIC_URL}/stl/covers/${item.chave}.jpg`);
+        lista.push(`${R2_PUBLIC_URL}/stl/covers/${item.chave}.png`);
+        lista.push(`${R2_PUBLIC_URL}/stl/covers/${item.chave}.webp`);
+        lista.push(`${R2_PUBLIC_URL}/covers/${item.chave}.jpg`);
+      }
+
+      return [...new Set(lista.filter(Boolean))];
+    }
+
+    function aplicarImagemComFallback(imgEl, candidatos, fallbackEl) {
+      let idx = 0;
+      function tentarProximo() {
+        if (idx >= candidatos.length) {
+          imgEl.style.display = 'none';
+          if (fallbackEl) fallbackEl.classList.remove('hidden');
+          return;
+        }
+        imgEl.src = candidatos[idx++];
+      }
+      imgEl.onerror = tentarProximo;
+      imgEl.onload = () => {
+        imgEl.style.display = 'block';
+        if (fallbackEl) fallbackEl.classList.add('hidden');
+      };
+      tentarProximo();
     }
 
     function mostrarToast(msg, erro = false) {
@@ -231,7 +268,7 @@
       }
 
       const nomeArquivo = item.arquivo || item.arquivo_exato || item.caminho_relativo;
-      mostrarToast(`Gerando link seguro para ${nomeArquivo}...`);
+      mostrarToast(`Localizando ${nomeArquivo} no servidor seguro...`);
 
       try {
         const res = await fetch('/api/download', {
@@ -242,13 +279,15 @@
           },
           body: JSON.stringify({
             chave: item.chave,
-            arquivo: nomeArquivo
+            arquivo: nomeArquivo,
+            caminho_relativo: item.caminho_relativo || null,
+            topico: item.topico || null
           })
         });
 
         const data = await res.json();
         if (!res.ok) {
-          mostrarToast(data.error || 'Chave inválida ou erro no download.', true);
+          mostrarToast(data.error || 'Erro ao localizar arquivo.', true);
           return;
         }
 
@@ -261,8 +300,8 @@
 
     function abrirModalDetalhes(item) {
       const img = document.getElementById('modal-img');
-      img.style.display = 'block';
-      img.src = resolverCover(item);
+      aplicarImagemComFallback(img, obterCandidatosCover(item), null);
+
       document.getElementById('modal-ext').textContent = item.extensao || '.3mf';
       document.getElementById('modal-topico').textContent = item.topico || 'Geral';
       document.getElementById('modal-titulo').textContent = formatarTitulo(item.titulo);
@@ -308,20 +347,17 @@
       const card = document.createElement('div');
       card.className = 'card-zoom bg-zinc-900 border border-zinc-800/90 rounded-xl overflow-hidden flex flex-col justify-between';
 
-      const coverUrl = resolverCover(item);
       const tituloLimpo = formatarTitulo(item.titulo);
 
       card.innerHTML = `
         <div>
           <div class="relative aspect-video bg-zinc-950 overflow-hidden cursor-pointer group">
             <img
-              src="${coverUrl}"
               alt="${tituloLimpo}"
               loading="lazy"
-              onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');"
-              class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+              class="card-cover-img w-full h-full object-cover group-hover:scale-105 transition duration-300"
             />
-            <div class="hidden w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-900 to-zinc-950 text-zinc-500 p-4 text-center">
+            <div class="card-cover-fallback hidden w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-900 to-zinc-950 text-zinc-500 p-4 text-center">
               <span class="text-lg font-black uppercase text-rose-500/80">${item.extensao || '3D'}</span>
               <span class="text-[11px] mt-1 line-clamp-1">${item.topico || 'Modelo 3D'}</span>
             </div>
@@ -345,6 +381,10 @@
           </button>
         </div>
       `;
+
+      const imgEl = card.querySelector('.card-cover-img');
+      const fallbackEl = card.querySelector('.card-cover-fallback');
+      aplicarImagemComFallback(imgEl, obterCandidatosCover(item), fallbackEl);
 
       card.querySelector('.aspect-video').onclick = () => abrirModalDetalhes(item);
       card.querySelector('h3').onclick = () => abrirModalDetalhes(item);
@@ -371,8 +411,9 @@
 
       const hero = document.getElementById('hero-section');
       if (!busca && topicoFiltro === 'TODOS' && extFiltro === 'todas' && filtrados.length > 0) {
-        const destaque = filtrados.find(i => i.url_cover || i.cover_exata) || filtrados[0];
-        document.getElementById('hero-bg').style.backgroundImage = `url('${resolverCover(destaque)}')`;
+        const destaque = filtrados.find(i => i.url_cover || i.cover_exata || i.cover_relativa) || filtrados[0];
+        const heroCover = obterCandidatosCover(destaque)[0] || '';
+        document.getElementById('hero-bg').style.backgroundImage = `url('${heroCover}')`;
         document.getElementById('hero-topico').textContent = destaque.topico;
         document.getElementById('hero-titulo').textContent = formatarTitulo(destaque.titulo);
         document.getElementById('hero-meta').textContent =
