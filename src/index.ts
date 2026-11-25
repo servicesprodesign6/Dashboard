@@ -13,14 +13,25 @@ export interface Env {
   R2_PUBLIC_URL: string;
 }
 
+type PlanTier = 'teste' | 'premium' | 'vip';
+
 interface TokenRecord {
   code: string;
   label: string;
+  plan: PlanTier;
+  planName: string;
+  maxDownloads: number | null; // null = ilimitado (VIP)
+  downloadsUsed: number;
   createdAt: string;
-  used: boolean;
-  usedAt?: string;
-  usedFile?: string;
+  lastUsedAt?: string;
+  lastFile?: string;
 }
+
+const PLAN_CONFIG: Record<PlanTier, { name: string; max: number | null }> = {
+  teste: { name: 'Teste (10 Downloads)', max: 10 },
+  premium: { name: 'Premium (50 Downloads)', max: 50 },
+  vip: { name: 'VIP (Ilimitado + Updates)', max: null },
+};
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -89,7 +100,7 @@ export default {
       return jsonResponse({ error: 'catalogo_site.json não encontrado no bucket R2.' }, 404);
     }
 
-    // 2. Login / Verificação de Sessão
+    // 2. Login / Verificação de Plano
     if (url.pathname === '/api/auth/login' && request.method === 'POST') {
       const body = (await request.json()) as { password?: string };
       const inputPass = (body.password || '').trim();
@@ -103,21 +114,29 @@ export default {
         });
       }
 
-      // Verifica se é um token de uso único válido
       if (env.TREZZY_KV && inputPass) {
         const rawToken = await env.TREZZY_KV.get(`TOKEN:${inputPass}`);
         if (rawToken) {
           const record = JSON.parse(rawToken) as TokenRecord;
-          if (!record.used) {
-            return jsonResponse({
-              role: 'guest_single_use',
-              token: inputPass,
-              label: record.label,
-              message: 'Token de uso único validado (1 download disponível).',
-            });
-          } else {
-            return jsonResponse({ error: 'Este token de uso único já foi utilizado.' }, 403);
+          const esgotado =
+            record.maxDownloads !== null && record.downloadsUsed >= record.maxDownloads;
+
+          if (esgotado) {
+            return jsonResponse(
+              { error: `Limite de ${record.maxDownloads} downloads atingido neste token.` },
+              403
+            );
           }
+
+          return jsonResponse({
+            role: 'member',
+            token: inputPass,
+            plan: record.plan,
+            planName: record.planName,
+            maxDownloads: record.maxDownloads,
+            downloadsUsed: record.downloadsUsed,
+            label: record.label,
+          });
         }
       }
 
@@ -127,7 +146,7 @@ export default {
     // 3. Alterar Senha Administrativa
     if (url.pathname === '/api/auth/change-password' && request.method === 'POST') {
       if (!env.TREZZY_KV) {
-        return jsonResponse({ error: 'Configure o binding TREZZY_KV no painel Cloudflare primeiro.' }, 500);
+        return jsonResponse({ error: 'Associe TREZZY_KV nas Configurações do Worker primeiro.' }, 500);
       }
 
       const authHeader = request.headers.get('Authorization') || '';
@@ -149,7 +168,7 @@ export default {
       return jsonResponse({ success: true, token: newPass });
     }
 
-    // 4. Gerenciar Tokens de Uso Único (Listar / Criar / Revogar)
+    // 4. Gerenciar Tokens por Plano (Listar / Criar / Revogar)
     if (url.pathname === '/api/tokens') {
       if (!env.TREZZY_KV) {
         return jsonResponse({ error: 'Binding TREZZY_KV não configurado no Worker.' }, 500);
@@ -163,7 +182,6 @@ export default {
         return jsonResponse({ error: 'Acesso restrito ao administrador.' }, 403);
       }
 
-      // Listar todos os tokens
       if (request.method === 'GET') {
         const list = await env.TREZZY_KV.list({ prefix: 'TOKEN:' });
         const tokens: TokenRecord[] = [];
@@ -175,24 +193,34 @@ export default {
         return jsonResponse({ tokens });
       }
 
-      // Criar novo token de uso único
       if (request.method === 'POST') {
-        const body = (await request.json()) as { label?: string };
+        const body = (await request.json()) as { label?: string; plan?: PlanTier };
+        const planKey: PlanTier =
+          body.plan && PLAN_CONFIG[body.plan] ? body.plan : 'teste';
+        const cfg = PLAN_CONFIG[planKey];
+
+        const prefixMap: Record<PlanTier, string> = {
+          teste: 'TRZ-TEST',
+          premium: 'TRZ-PRO',
+          vip: 'TRZ-VIP',
+        };
         const randomPart = crypto.randomUUID().split('-')[0].toUpperCase();
-        const code = `TRZ-${randomPart}`;
+        const code = `${prefixMap[planKey]}-${randomPart}`;
 
         const record: TokenRecord = {
           code,
-          label: (body.label || 'Cliente Avulso').trim(),
+          label: (body.label || 'Cliente').trim(),
+          plan: planKey,
+          planName: cfg.name,
+          maxDownloads: cfg.max,
+          downloadsUsed: 0,
           createdAt: new Date().toISOString(),
-          used: false,
         };
 
         await env.TREZZY_KV.put(`TOKEN:${code}`, JSON.stringify(record));
         return jsonResponse({ token: record });
       }
 
-      // Excluir token
       if (request.method === 'DELETE') {
         const code = url.searchParams.get('code');
         if (code) {
@@ -202,7 +230,7 @@ export default {
       }
     }
 
-    // 5. Endpoint de Download Protegido (Suporta Admin + Token de Uso Único)
+    // 5. Endpoint de Download Protegido com Contagem de Cota por Plano
     if (url.pathname === '/api/download' && request.method === 'POST') {
       try {
         const authHeader = request.headers.get('Authorization') || '';
@@ -214,7 +242,7 @@ export default {
 
         const adminPass = await getAdminPassword(env);
         const isAdmin = token === adminPass;
-        let singleUseRecord: TokenRecord | null = null;
+        let memberRecord: TokenRecord | null = null;
 
         if (!isAdmin) {
           if (!env.TREZZY_KV) {
@@ -222,11 +250,20 @@ export default {
           }
           const raw = await env.TREZZY_KV.get(`TOKEN:${token}`);
           if (!raw) {
-            return jsonResponse({ error: 'Token inválido ou inexistente.' }, 403);
+            return jsonResponse({ error: 'Token inválido ou revogado.' }, 403);
           }
-          singleUseRecord = JSON.parse(raw) as TokenRecord;
-          if (singleUseRecord.used) {
-            return jsonResponse({ error: 'Este token já foi utilizado e expirou.' }, 403);
+          memberRecord = JSON.parse(raw) as TokenRecord;
+
+          if (
+            memberRecord.maxDownloads !== null &&
+            memberRecord.downloadsUsed >= memberRecord.maxDownloads
+          ) {
+            return jsonResponse(
+              {
+                error: `Cota esgotada! Você já usou todos os ${memberRecord.maxDownloads} downloads do plano ${memberRecord.planName}.`,
+              },
+              403
+            );
           }
         }
 
@@ -317,12 +354,12 @@ export default {
           );
         }
 
-        // Queima o token de uso único imediatamente após encontrar o arquivo!
-        if (singleUseRecord && env.TREZZY_KV) {
-          singleUseRecord.used = true;
-          singleUseRecord.usedAt = new Date().toISOString();
-          singleUseRecord.usedFile = onlyFilename;
-          await env.TREZZY_KV.put(`TOKEN:${token}`, JSON.stringify(singleUseRecord));
+        // Desconta 1 download da cota do cliente (ou apenas registra o último arquivo se for VIP)
+        if (memberRecord && env.TREZZY_KV) {
+          memberRecord.downloadsUsed += 1;
+          memberRecord.lastUsedAt = new Date().toISOString();
+          memberRecord.lastFile = onlyFilename;
+          await env.TREZZY_KV.put(`TOKEN:${token}`, JSON.stringify(memberRecord));
         }
 
         const endpoint = new URL(`${baseBucketUrl}/${keyEncontrada}`);
@@ -340,7 +377,13 @@ export default {
         return jsonResponse({
           url: signedRequest.url,
           expires_in: 300,
-          single_use_consumed: Boolean(singleUseRecord),
+          quota: memberRecord
+            ? {
+                planName: memberRecord.planName,
+                used: memberRecord.downloadsUsed,
+                max: memberRecord.maxDownloads,
+              }
+            : null,
         });
       } catch (err) {
         console.error('[R2_WORKER_ERROR]', err);
