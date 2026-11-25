@@ -27,21 +27,20 @@
 
       <form id="form-login" class="space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-zinc-400 mb-1.5">Senha Administrativa ou Token de Uso Único</label>
+          <label class="block text-xs font-semibold text-zinc-400 mb-1.5">Chave de Acesso ou Senha Administrativa</label>
           <input
             id="login-input"
             type="password"
             required
-            placeholder="Digite sua senha ou token TRZ-..."
+            placeholder="Digite seu token TRZ-... ou senha"
             class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-3 rounded-xl"
           />
         </div>
         <button
           type="submit"
-          id="btn-login-submit"
           class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm py-3 rounded-xl shadow-lg shadow-rose-600/20 transition cursor-pointer"
         >
-          Entrar no Painel
+          Acessar Biblioteca
         </button>
       </form>
       <p id="login-error" class="text-xs text-red-400 text-center mt-4 hidden"></p>
@@ -74,7 +73,7 @@
             <span>🧊</span> <span>Catálogo 3D</span>
           </button>
           <button onclick="mudarAba('tokens')" id="nav-tokens" class="admin-only nav-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left text-zinc-400 hover:bg-zinc-800/60 hover:text-white cursor-pointer whitespace-nowrap">
-            <span>🎟️</span> <span>Tokens Uso Único</span>
+            <span>🎟️</span> <span>Planos & Tokens</span>
           </button>
           <button onclick="mudarAba('config')" id="nav-config" class="admin-only nav-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left text-zinc-400 hover:bg-zinc-800/60 hover:text-white cursor-pointer whitespace-nowrap">
             <span>⚙️</span> <span>Alterar Senha</span>
@@ -96,10 +95,9 @@
     <div class="flex-1 flex flex-col min-w-0">
 
       <!-- Topbar -->
-      <header class="bg-zinc-950/90 backdrop-blur border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+      <header class="bg-zinc-950/90 backdrop-blur border-b border-zinc-800 px-6 py-4 flex flex-wrap items-center justify-between gap-2">
         <h1 id="page-title" class="text-lg font-bold text-white">Visão Geral</h1>
-        <div id="guest-banner" class="hidden bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs px-3 py-1.5 rounded-lg">
-          Modo Cliente: Você possui <strong>1 download</strong> disponível neste token.
+        <div id="member-quota-banner" class="hidden bg-rose-600/15 border border-rose-600/30 text-rose-200 text-xs px-3.5 py-1.5 rounded-lg font-medium">
         </div>
       </header>
 
@@ -121,7 +119,7 @@
               <p id="stat-categorias" class="text-3xl font-black text-white mt-1">0</p>
             </div>
             <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-              <span class="text-xs text-zinc-400">Tokens Únicos Ativos</span>
+              <span class="text-xs text-zinc-400">Assinaturas / Tokens Ativos</span>
               <p id="stat-tokens" class="text-3xl font-black text-emerald-400 mt-1">-</p>
             </div>
           </div>
@@ -161,42 +159,50 @@
           <div id="catalogo-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
         </section>
 
-        <!-- ABA 3: GERADOR DE TOKENS DE USO ÚNICO -->
+        <!-- ABA 3: GERADOR DE PLANOS & TOKENS -->
         <section id="tab-tokens" class="hidden space-y-6">
           <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-            <h2 class="text-base font-bold text-white mb-1">Gerar Token de Uso Único</h2>
+            <h2 class="text-base font-bold text-white mb-1">Gerar Chave de Assinatura / Plano</h2>
             <p class="text-xs text-zinc-400 mb-4">
-              Ideal para vendas avulsas. Assim que o cliente baixar 1 arquivo, o token é invalidado automaticamente e não pode ser compartilhado.
+              Escolha o pacote do cliente. O sistema controla automaticamente a cota de downloads de cada chave.
             </p>
-            <div class="flex flex-wrap gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
               <input
                 id="input-token-label"
                 type="text"
-                placeholder="Identificação (ex: Cliente João - WhatsApp)"
-                class="flex-1 min-w-[220px] bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+                placeholder="Nome do Cliente (ex: Marcos - Pix)"
+                class="bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
               />
+              <select
+                id="select-token-plan"
+                class="bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+              >
+                <option value="teste">🧪 Teste — 10 Downloads</option>
+                <option value="premium">⭐ Premium — 50 Downloads</option>
+                <option value="vip">👑 VIP — ALL Downloads + Updates</option>
+              </select>
               <button
                 onclick="gerarNovoToken()"
                 class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl cursor-pointer"
               >
-                + Gerar Token Único
+                + Gerar & Copiar Chave
               </button>
             </div>
           </div>
 
           <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
             <div class="p-5 border-b border-zinc-800 flex items-center justify-between">
-              <h3 class="text-sm font-bold text-white">Histórico de Tokens Gerados</h3>
+              <h3 class="text-sm font-bold text-white">Clientes & Chaves Ativas</h3>
               <button onclick="carregarTokens()" class="text-xs text-zinc-400 hover:text-white cursor-pointer">Atualizar</button>
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs">
                 <thead class="bg-zinc-950 text-zinc-400 uppercase">
                   <tr>
-                    <th class="px-4 py-3">Token</th>
-                    <th class="px-4 py-3">Cliente / Descrição</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3">Arquivo Baixado</th>
+                    <th class="px-4 py-3">Chave</th>
+                    <th class="px-4 py-3">Cliente</th>
+                    <th class="px-4 py-3">Plano</th>
+                    <th class="px-4 py-3">Consumo</th>
                     <th class="px-4 py-3 text-right">Ações</th>
                   </tr>
                 </thead>
@@ -211,7 +217,7 @@
           <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
             <h2 class="text-base font-bold text-white">Alterar Senha Administrativa</h2>
             <p class="text-xs text-zinc-400">
-              Defina uma nova senha mestra para acessar esta dashboard e gerenciar tokens.
+              Defina uma nova senha mestra para acessar esta dashboard e gerenciar planos.
             </p>
             <div>
               <label class="block text-xs text-zinc-400 mb-1">Nova Senha</label>
@@ -242,6 +248,7 @@
     const R2_PUBLIC_URL = 'https://pub-9b4a5394ab8f4c7fae42da15591ac8cf.r2.dev';
     let sessionToken = localStorage.getItem('trezzy_session_token') || '';
     let sessionRole = localStorage.getItem('trezzy_session_role') || '';
+    let memberInfo = JSON.parse(localStorage.getItem('trezzy_member_info') || 'null');
     let catalogoCompleto = [];
 
     function mostrarToast(msg, erro = false) {
@@ -301,6 +308,21 @@
       next();
     }
 
+    function atualizarBannerCota() {
+      const banner = document.getElementById('member-quota-banner');
+      if (sessionRole === 'admin' || !memberInfo) {
+        banner.classList.add('hidden');
+        return;
+      }
+      banner.classList.remove('hidden');
+      if (memberInfo.maxDownloads === null) {
+        banner.innerHTML = `👑 <strong>${memberInfo.planName}</strong> • Acesso Total Liberado`;
+      } else {
+        const restantes = Math.max(0, memberInfo.maxDownloads - memberInfo.downloadsUsed);
+        banner.innerHTML = `🎟️ <strong>${memberInfo.planName}</strong> • Restam <strong>${restantes}</strong> de ${memberInfo.maxDownloads} downloads`;
+      }
+    }
+
     // LOGIN E SESSÃO
     document.getElementById('form-login').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -323,8 +345,11 @@
 
         sessionToken = data.token;
         sessionRole = data.role;
+        memberInfo = data.role === 'member' ? data : null;
+
         localStorage.setItem('trezzy_session_token', sessionToken);
         localStorage.setItem('trezzy_session_role', sessionRole);
+        localStorage.setItem('trezzy_member_info', JSON.stringify(memberInfo));
         iniciarDashboard();
       } catch {
         errEl.textContent = 'Erro de conexão com o servidor.';
@@ -335,8 +360,10 @@
     function fazerLogout() {
       localStorage.removeItem('trezzy_session_token');
       localStorage.removeItem('trezzy_session_role');
+      localStorage.removeItem('trezzy_member_info');
       sessionToken = '';
       sessionRole = '';
+      memberInfo = null;
       document.getElementById('app-shell').classList.add('hidden');
       document.getElementById('login-screen').classList.remove('hidden');
       document.getElementById('login-input').value = '';
@@ -360,7 +387,7 @@
       const titulos = {
         overview: 'Visão Geral',
         catalogo: 'Catálogo Oficial Trezzy 3D',
-        tokens: 'Gerador de Tokens de Uso Único',
+        tokens: 'Gerenciador de Planos & Chaves',
         config: 'Configurações de Segurança',
       };
       document.getElementById('page-title').textContent = titulos[aba] || 'Dashboard';
@@ -382,7 +409,7 @@
                 3D
               </div>
               <span class="text-[11px] font-semibold text-zinc-300 line-clamp-1">${item.topico || 'Trezzy 3D'}</span>
-              <span class="text-[10px] text-zinc-500">Modelo sem prévia</span>
+              <span class="text-[10px] text-zinc-500">Arquivo 3D Oficial</span>
             </div>
             <span class="absolute top-2 right-2 bg-black/80 border border-zinc-700 text-[10px] font-bold uppercase px-2 py-0.5 rounded">
               ${item.extensao || '.3mf'}
@@ -434,15 +461,14 @@
           return;
         }
 
+        if (data.quota && memberInfo) {
+          memberInfo.downloadsUsed = data.quota.used;
+          localStorage.setItem('trezzy_member_info', JSON.stringify(memberInfo));
+          atualizarBannerCota();
+        }
+
         mostrarToast('Download iniciado!');
         window.location.href = data.url;
-
-        if (data.single_use_consumed) {
-          setTimeout(() => {
-            alert('Seu token de uso único foi utilizado com sucesso e encerrado.');
-            fazerLogout();
-          }, 2500);
-        }
       } catch {
         mostrarToast('Erro de rede ao solicitar download.', true);
       }
@@ -468,7 +494,7 @@
       filtrados.slice(0, 60).forEach((item) => grid.appendChild(criarCard(item)));
     }
 
-    // GERENCIAMENTO DE TOKENS DE USO ÚNICO
+    // GERENCIAMENTO DE PLANOS & TOKENS
     async function carregarTokens() {
       if (sessionRole !== 'admin') return;
       try {
@@ -481,28 +507,36 @@
         const tbody = document.getElementById('tabela-tokens');
         tbody.innerHTML = '';
 
-        const ativos = data.tokens.filter((t) => !t.used).length;
+        const ativos = data.tokens.filter(
+          (t) => t.maxDownloads === null || t.downloadsUsed < t.maxDownloads
+        ).length;
         document.getElementById('stat-tokens').textContent = ativos;
 
         data.tokens.forEach((t) => {
+          const esgotado = t.maxDownloads !== null && t.downloadsUsed >= t.maxDownloads;
+          const consumoTexto =
+            t.maxDownloads === null
+              ? `${t.downloadsUsed} baixados (Ilimitado)`
+              : `${t.downloadsUsed} / ${t.maxDownloads} downloads`;
+
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td class="px-4 py-3 font-mono font-bold text-white">${t.code}</td>
             <td class="px-4 py-3 text-zinc-300">${t.label}</td>
             <td class="px-4 py-3">
+              <span class="bg-zinc-800 border border-zinc-700 text-zinc-200 px-2 py-0.5 rounded text-[10px] font-semibold">
+                ${t.planName}
+              </span>
+            </td>
+            <td class="px-4 py-3">
               ${
-                t.used
-                  ? '<span class="bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded text-[10px] font-bold">UTILIZADO</span>'
-                  : '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold">DISPONÍVEL (1 USO)</span>'
+                esgotado
+                  ? `<span class="text-red-400 font-bold">ESGOTADO (${consumoTexto})</span>`
+                  : `<span class="text-emerald-400 font-semibold">${consumoTexto}</span>`
               }
             </td>
-            <td class="px-4 py-3 text-zinc-400">${t.usedFile || '-'}</td>
             <td class="px-4 py-3 text-right space-x-2">
-              ${
-                !t.used
-                  ? `<button onclick="copiarToken('${t.code}')" class="bg-zinc-800 hover:bg-zinc-700 text-white px-2.5 py-1 rounded cursor-pointer">Copiar</button>`
-                  : ''
-              }
+              <button onclick="copiarToken('${t.code}')" class="bg-zinc-800 hover:bg-zinc-700 text-white px-2.5 py-1 rounded cursor-pointer">Copiar</button>
               <button onclick="excluirToken('${t.code}')" class="bg-red-950/80 hover:bg-red-900 text-red-300 px-2.5 py-1 rounded cursor-pointer">Excluir</button>
             </td>
           `;
@@ -514,18 +548,20 @@
     }
 
     async function gerarNovoToken() {
-      const label = document.getElementById('input-token-label').value.trim() || 'Cliente Avulso';
+      const label = document.getElementById('input-token-label').value.trim() || 'Cliente Trezzy 3D';
+      const plan = document.getElementById('select-token-plan').value;
+
       const res = await fetch('/api/tokens', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sessionToken}`,
         },
-        body: JSON.stringify({ label }),
+        body: JSON.stringify({ label, plan }),
       });
       const data = await res.json();
       if (!res.ok) {
-        mostrarToast(data.error || 'Erro ao gerar token.', true);
+        mostrarToast(data.error || 'Erro ao gerar chave.', true);
         return;
       }
       document.getElementById('input-token-label').value = '';
@@ -535,7 +571,7 @@
 
     function copiarToken(code) {
       navigator.clipboard.writeText(code);
-      mostrarToast(`Token ${code} copiado para a área de transferência!`);
+      mostrarToast(`Chave ${code} copiada para enviar ao cliente!`);
     }
 
     async function excluirToken(code) {
@@ -543,7 +579,7 @@
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${sessionToken}` },
       });
-      mostrarToast('Token removido.');
+      mostrarToast('Chave removida.');
       carregarTokens();
     }
 
@@ -576,8 +612,11 @@
       document.querySelectorAll('.admin-only').forEach((el) => {
         el.style.display = isAdmin ? '' : 'none';
       });
-      document.getElementById('role-badge').textContent = isAdmin ? 'Administrador' : 'Acesso Único';
-      document.getElementById('guest-banner').classList.toggle('hidden', isAdmin);
+      document.getElementById('role-badge').textContent = isAdmin
+        ? 'Administrador'
+        : (memberInfo?.planName || 'Membro');
+
+      atualizarBannerCota();
 
       if (!isAdmin) {
         mudarAba('catalogo');
