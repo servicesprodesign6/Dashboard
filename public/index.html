@@ -3,203 +3,268 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TREZZY 3D | Biblioteca Oficial</title>
+  <title>TREZZY 3D | Painel & Biblioteca</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
       background-color: #09090b;
       color: #f4f4f5;
       font-family: system-ui, -apple-system, sans-serif;
-      overflow-x: hidden;
     }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    .card-zoom { transition: transform 0.25s ease, border-color 0.25s ease; }
-    .card-zoom:hover { transform: translateY(-4px); border-color: #e11d48; }
+    .card-hover { transition: all 0.2s ease; }
+    .card-hover:hover { transform: translateY(-3px); border-color: #e11d48; }
   </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen bg-zinc-950 text-zinc-100">
 
-  <!-- Navbar -->
-  <header class="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/80 px-4 md:px-8 py-3.5">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <span class="text-2xl font-black tracking-wider text-rose-600">TREZZY 3D</span>
-        <span class="text-xs font-semibold uppercase tracking-wider bg-zinc-900 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-md">
-          Área de Membros
-        </span>
-        <span id="badge-total" class="hidden sm:inline-block text-xs text-zinc-400">
-          Carregando...
-        </span>
+  <!-- TELA DE LOGIN -->
+  <div id="login-screen" class="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-rose-950/20 via-zinc-950 to-zinc-950">
+    <div class="w-full max-w-md bg-zinc-900/90 border border-zinc-800 rounded-2xl p-8 shadow-2xl">
+      <div class="text-center mb-6">
+        <span class="text-3xl font-black tracking-wider text-rose-600">TREZZY 3D</span>
+        <p class="text-xs uppercase tracking-widest text-zinc-400 mt-1">Dashboard & Acervo Oficial</p>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <input
-          id="input-busca"
-          type="text"
-          placeholder="Buscar STL, 3MF, chave..."
-          class="bg-zinc-900 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-3 py-2 rounded-lg w-44 sm:w-60"
-        />
-
-        <select
-          id="select-topico"
-          class="bg-zinc-900 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-3 py-2 rounded-lg max-w-[170px]"
-        >
-          <option value="TODOS">Todas as Categorias</option>
-        </select>
-
-        <select
-          id="select-ext"
-          class="bg-zinc-900 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-3 py-2 rounded-lg"
-        >
-          <option value="TODAS">Extensões</option>
-          <option value=".3mf">.3mf</option>
-          <option value=".stl">.stl</option>
-          <option value=".zip">.zip</option>
-          <option value=".rar">.rar</option>
-          <option value=".7z">.7z</option>
-        </select>
-
+      <form id="form-login" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-zinc-400 mb-1.5">Senha Administrativa ou Token de Uso Único</label>
+          <input
+            id="login-input"
+            type="password"
+            required
+            placeholder="Digite sua senha ou token TRZ-..."
+            class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-3 rounded-xl"
+          />
+        </div>
         <button
-          onclick="abrirModalToken()"
-          id="btn-token-status"
-          class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+          type="submit"
+          id="btn-login-submit"
+          class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm py-3 rounded-xl shadow-lg shadow-rose-600/20 transition cursor-pointer"
         >
-          <span id="token-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
-          <span>Chave de Acesso</span>
+          Entrar no Painel
         </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- Hero Banner -->
-  <section id="hero-section" class="relative border-b border-zinc-800/80 overflow-hidden hidden">
-    <div id="hero-bg" class="absolute inset-0 bg-cover bg-center opacity-35 scale-105 blur-[2px]"></div>
-    <div class="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/90 to-zinc-950/40"></div>
-    <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-zinc-950/60"></div>
-
-    <div class="relative max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-20">
-      <div class="max-w-2xl">
-        <div class="flex items-center gap-2 mb-3">
-          <span class="bg-rose-600 text-white text-[11px] font-bold uppercase px-2 py-0.5 rounded">Destaque</span>
-          <span id="hero-topico" class="text-xs font-semibold text-rose-400 uppercase tracking-wider"></span>
-        </div>
-        <h1 id="hero-titulo" class="text-3xl md:text-5xl font-extrabold text-white tracking-tight capitalize mb-3"></h1>
-        <p id="hero-meta" class="text-sm text-zinc-300 mb-6"></p>
-        <div class="flex flex-wrap gap-3">
-          <button
-            id="hero-btn-download"
-            class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm px-6 py-3 rounded-lg shadow-lg shadow-rose-600/20 transition cursor-pointer"
-          >
-            Baixar Arquivo Agora
-          </button>
-          <button
-            id="hero-btn-detalhes"
-            class="bg-zinc-800/90 hover:bg-zinc-700 text-white font-semibold text-sm px-5 py-3 rounded-lg border border-zinc-700 transition cursor-pointer"
-          >
-            Detalhes Técnicos
-          </button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Conteúdo Principal -->
-  <main id="main-content" class="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-8">
-    <div id="loading-state" class="py-24 text-center text-zinc-400">
-      <div class="inline-block w-8 h-8 border-2 border-rose-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-      <p class="text-sm">Sincronizando catálogo Trezzy 3D...</p>
-    </div>
-    <div id="catalogo-container" class="space-y-10 hidden"></div>
-  </main>
-
-  <!-- Modal Detalhes do Modelo -->
-  <div id="modal-detalhes" onclick="fecharModalDetalhes()" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div onclick="event.stopPropagation()" class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
-      <div class="relative aspect-video bg-zinc-950 flex items-center justify-center">
-        <img id="modal-img" src="" alt="" class="w-full h-full object-cover" />
-        <span id="modal-ext" class="absolute top-3 right-3 bg-black/80 border border-zinc-700 text-xs font-bold uppercase px-2.5 py-1 rounded-md"></span>
-      </div>
-      <div class="p-6">
-        <span id="modal-topico" class="text-xs font-bold uppercase tracking-wider text-rose-500"></span>
-        <h3 id="modal-titulo" class="text-xl font-bold text-white capitalize mt-1 mb-4"></h3>
-
-        <div class="bg-zinc-950 border border-zinc-800/90 rounded-xl p-3.5 text-xs text-zinc-300 space-y-1.5 font-mono mb-5">
-          <div><span class="text-zinc-500">Arquivo:</span> <span id="modal-arquivo" class="break-all"></span></div>
-          <div><span class="text-zinc-500">Chave:</span> <span id="modal-chave"></span></div>
-          <div><span class="text-zinc-500">Tamanho:</span> <span id="modal-tamanho"></span></div>
-          <div><span class="text-zinc-500">Coleção:</span> <span class="text-rose-400 font-semibold">Trezzy 3D</span></div>
-        </div>
-
-        <div class="flex items-center justify-end gap-3">
-          <button onclick="fecharModalDetalhes()" class="bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg cursor-pointer">
-            Fechar
-          </button>
-          <button id="modal-btn-download" class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold px-5 py-2.5 rounded-lg cursor-pointer">
-            Download Seguro
-          </button>
-        </div>
-      </div>
+      </form>
+      <p id="login-error" class="text-xs text-red-400 text-center mt-4 hidden"></p>
     </div>
   </div>
 
-  <!-- Modal Token de Membro -->
-  <div id="modal-token" onclick="fecharModalToken()" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div onclick="event.stopPropagation()" class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-      <h3 class="text-lg font-bold text-white mb-1">Chave de Acesso do Membro</h3>
-      <p class="text-xs text-zinc-400 mb-4">
-        Insira sua chave de assinante Trezzy 3D para liberar os downloads diretos.
-      </p>
-      <input
-        id="input-token-modal"
-        type="password"
-        placeholder="Cole sua chave de acesso aqui..."
-        class="w-full bg-zinc-950 border border-zinc-700 focus:border-rose-600 focus:outline-none text-sm text-white px-3.5 py-2.5 rounded-lg mb-4"
-      />
-      <div class="flex justify-end gap-2">
-        <button onclick="fecharModalToken()" class="bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold px-4 py-2.5 rounded-lg cursor-pointer">
-          Cancelar
-        </button>
-        <button onclick="salvarToken()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-5 py-2.5 rounded-lg cursor-pointer">
-          Salvar Chave
+  <!-- DASHBOARD COMPLETA -->
+  <div id="app-shell" class="hidden min-h-screen flex flex-col md:flex-row">
+
+    <!-- Sidebar Lateral -->
+    <aside class="w-full md:w-64 bg-zinc-900/80 border-b md:border-b-0 md:border-r border-zinc-800 flex flex-col justify-between shrink-0">
+      <div>
+        <div class="p-5 border-b border-zinc-800 flex items-center justify-between">
+          <div>
+            <span class="text-xl font-black tracking-wider text-rose-600">TREZZY 3D</span>
+            <span id="role-badge" class="block text-[10px] font-bold uppercase tracking-wider text-emerald-400 mt-0.5">
+              Administrador
+            </span>
+          </div>
+          <button onclick="fazerLogout()" class="md:hidden text-xs bg-zinc-800 px-3 py-1.5 rounded-lg text-zinc-300">
+            Sair
+          </button>
+        </div>
+
+        <nav class="p-3 flex md:flex-col gap-1 overflow-x-auto">
+          <button onclick="mudarAba('overview')" id="nav-overview" class="nav-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left bg-rose-600/15 text-rose-400 border border-rose-600/30 cursor-pointer whitespace-nowrap">
+            <span>📊</span> <span>Visão Geral</span>
+          </button>
+          <button onclick="mudarAba('catalogo')" id="nav-catalogo" class="nav-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left text-zinc-400 hover:bg-zinc-800/60 hover:text-white cursor-pointer whitespace-nowrap">
+            <span>🧊</span> <span>Catálogo 3D</span>
+          </button>
+          <button onclick="mudarAba('tokens')" id="nav-tokens" class="admin-only nav-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left text-zinc-400 hover:bg-zinc-800/60 hover:text-white cursor-pointer whitespace-nowrap">
+            <span>🎟️</span> <span>Tokens Uso Único</span>
+          </button>
+          <button onclick="mudarAba('config')" id="nav-config" class="admin-only nav-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left text-zinc-400 hover:bg-zinc-800/60 hover:text-white cursor-pointer whitespace-nowrap">
+            <span>⚙️</span> <span>Alterar Senha</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="hidden md:block p-4 border-t border-zinc-800">
+        <button
+          onclick="fazerLogout()"
+          class="w-full bg-zinc-800 hover:bg-red-950/80 hover:text-red-300 border border-zinc-700 text-zinc-300 text-xs font-semibold py-2.5 rounded-xl transition cursor-pointer"
+        >
+          🚪 Sair da Conta
         </button>
       </div>
+    </aside>
+
+    <!-- Área de Conteúdo -->
+    <div class="flex-1 flex flex-col min-w-0">
+
+      <!-- Topbar -->
+      <header class="bg-zinc-950/90 backdrop-blur border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+        <h1 id="page-title" class="text-lg font-bold text-white">Visão Geral</h1>
+        <div id="guest-banner" class="hidden bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs px-3 py-1.5 rounded-lg">
+          Modo Cliente: Você possui <strong>1 download</strong> disponível neste token.
+        </div>
+      </header>
+
+      <main class="flex-1 p-6 max-w-7xl w-full mx-auto">
+
+        <!-- ABA 1: VISÃO GERAL -->
+        <section id="tab-overview" class="space-y-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+              <span class="text-xs text-zinc-400">Total de Modelos 3D</span>
+              <p id="stat-arquivos" class="text-3xl font-black text-white mt-1">0</p>
+            </div>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+              <span class="text-xs text-zinc-400">Volume Armazenado</span>
+              <p id="stat-gb" class="text-3xl font-black text-rose-500 mt-1">0 GB</p>
+            </div>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+              <span class="text-xs text-zinc-400">Categorias Ativas</span>
+              <p id="stat-categorias" class="text-3xl font-black text-white mt-1">0</p>
+            </div>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+              <span class="text-xs text-zinc-400">Tokens Únicos Ativos</span>
+              <p id="stat-tokens" class="text-3xl font-black text-emerald-400 mt-1">-</p>
+            </div>
+          </div>
+
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-base font-bold text-white">Últimos Modelos Adicionados</h2>
+              <button onclick="mudarAba('catalogo')" class="text-xs font-semibold text-rose-400 hover:text-rose-300 cursor-pointer">
+                Ver catálogo completo →
+              </button>
+            </div>
+            <div id="overview-recentes" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+          </div>
+        </section>
+
+        <!-- ABA 2: CATÁLOGO 3D -->
+        <section id="tab-catalogo" class="hidden space-y-6">
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex flex-wrap gap-3">
+            <input
+              id="input-busca"
+              type="text"
+              placeholder="Buscar por nome, ID ou arquivo..."
+              class="flex-1 min-w-[200px] bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-3.5 py-2.5 rounded-xl"
+            />
+            <select id="select-topico" class="bg-zinc-950 border border-zinc-800 text-sm text-white px-3.5 py-2.5 rounded-xl">
+              <option value="TODOS">Todas as Categorias</option>
+            </select>
+            <select id="select-ext" class="bg-zinc-950 border border-zinc-800 text-sm text-white px-3.5 py-2.5 rounded-xl">
+              <option value="TODAS">Todas Extensões</option>
+              <option value=".3mf">.3mf</option>
+              <option value=".stl">.stl</option>
+              <option value=".zip">.zip</option>
+              <option value=".rar">.rar</option>
+            </select>
+          </div>
+
+          <div id="catalogo-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        </section>
+
+        <!-- ABA 3: GERADOR DE TOKENS DE USO ÚNICO -->
+        <section id="tab-tokens" class="hidden space-y-6">
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+            <h2 class="text-base font-bold text-white mb-1">Gerar Token de Uso Único</h2>
+            <p class="text-xs text-zinc-400 mb-4">
+              Ideal para vendas avulsas. Assim que o cliente baixar 1 arquivo, o token é invalidado automaticamente e não pode ser compartilhado.
+            </p>
+            <div class="flex flex-wrap gap-3">
+              <input
+                id="input-token-label"
+                type="text"
+                placeholder="Identificação (ex: Cliente João - WhatsApp)"
+                class="flex-1 min-w-[220px] bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+              />
+              <button
+                onclick="gerarNovoToken()"
+                class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl cursor-pointer"
+              >
+                + Gerar Token Único
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+            <div class="p-5 border-b border-zinc-800 flex items-center justify-between">
+              <h3 class="text-sm font-bold text-white">Histórico de Tokens Gerados</h3>
+              <button onclick="carregarTokens()" class="text-xs text-zinc-400 hover:text-white cursor-pointer">Atualizar</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-zinc-950 text-zinc-400 uppercase">
+                  <tr>
+                    <th class="px-4 py-3">Token</th>
+                    <th class="px-4 py-3">Cliente / Descrição</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3">Arquivo Baixado</th>
+                    <th class="px-4 py-3 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tabela-tokens" class="divide-y divide-zinc-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ABA 4: ALTERAR SENHA -->
+        <section id="tab-config" class="hidden max-w-lg">
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+            <h2 class="text-base font-bold text-white">Alterar Senha Administrativa</h2>
+            <p class="text-xs text-zinc-400">
+              Defina uma nova senha mestra para acessar esta dashboard e gerenciar tokens.
+            </p>
+            <div>
+              <label class="block text-xs text-zinc-400 mb-1">Nova Senha</label>
+              <input
+                id="input-nova-senha"
+                type="password"
+                placeholder="Mínimo 4 caracteres"
+                class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+              />
+            </div>
+            <button
+              onclick="alterarSenhaAdmin()"
+              class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold px-5 py-2.5 rounded-xl cursor-pointer"
+            >
+              Salvar Nova Senha
+            </button>
+          </div>
+        </section>
+
+      </main>
     </div>
   </div>
 
-  <!-- Toast de Notificação -->
+  <!-- Toast -->
   <div id="toast" class="fixed bottom-5 right-5 z-50 hidden px-4 py-3 rounded-xl text-sm font-medium shadow-xl border"></div>
 
   <script>
     const R2_PUBLIC_URL = 'https://pub-9b4a5394ab8f4c7fae42da15591ac8cf.r2.dev';
-
+    let sessionToken = localStorage.getItem('trezzy_session_token') || '';
+    let sessionRole = localStorage.getItem('trezzy_session_role') || '';
     let catalogoCompleto = [];
-    let topicosLista = [];
-    let memberToken = localStorage.getItem('trezzy_member_token') || '';
 
-    function atualizarStatusTokenUI() {
-      const dot = document.getElementById('token-dot');
-      dot.className = memberToken
-        ? 'w-2 h-2 rounded-full bg-emerald-500'
-        : 'w-2 h-2 rounded-full bg-amber-500';
+    function mostrarToast(msg, erro = false) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = `fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl text-sm font-medium shadow-xl border ${
+        erro ? 'bg-red-950 border-red-700 text-red-100' : 'bg-emerald-950 border-emerald-700 text-emerald-100'
+      }`;
+      el.classList.remove('hidden');
+      clearTimeout(window.__t);
+      window.__t = setTimeout(() => el.classList.add('hidden'), 4000);
     }
 
     function formatarTitulo(raw) {
       try {
-        return decodeURIComponent(raw || '')
-          .replace(/\+/g, ' ')
-          .replace(/_/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
+        return decodeURIComponent(raw || '').replace(/\+/g, ' ').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
       } catch {
         return (raw || '').replace(/\+/g, ' ').replace(/_/g, ' ');
       }
     }
 
-    // Gera todas as combinações possíveis de caminho e extensão de capa
     function obterCandidatosCover(item) {
       const lista = [];
-
       if (item.url_cover) {
         let u = item.url_cover.replace('https://SEU_DOMINIO_R2', R2_PUBLIC_URL);
         if (u.startsWith(R2_PUBLIC_URL) && !u.includes(`${R2_PUBLIC_URL}/stl/`)) {
@@ -207,185 +272,131 @@
         }
         lista.push(u);
       }
-
       if (item.cover_relativa) {
         const rel = item.cover_relativa.replace(/^\/+/, '');
         lista.push(rel.startsWith('stl/') ? `${R2_PUBLIC_URL}/${rel}` : `${R2_PUBLIC_URL}/stl/${rel}`);
-        lista.push(`${R2_PUBLIC_URL}/${rel}`);
       }
-
-      if (item.cover_exata) {
-        const nomeCov = item.cover_exata.split('/').pop();
-        lista.push(`${R2_PUBLIC_URL}/stl/covers/${nomeCov}`);
-        lista.push(`${R2_PUBLIC_URL}/covers/${nomeCov}`);
+      if (item.chave) {
+        lista.push(`${R2_PUBLIC_URL}/stl/covers/${item.chave}.jpg`);
+        lista.push(`${R2_PUBLIC_URL}/covers/${item.chave}.jpg`);
       }
-
-      const ids = new Set();
-      if (item.chave) ids.add(String(item.chave));
-      if (item.message_id) ids.add(String(item.message_id));
-
-      const rawArq = (item.arquivo || item.arquivo_exato || '').split('/').pop();
-      if (rawArq) {
-        const semExt = rawArq.replace(/\.[^/.]+$/, '');
-        ids.add(semExt);
-      }
-
-      const exts = ['jpg', 'jpeg', 'png', 'webp'];
-      for (const id of ids) {
-        for (const ext of exts) {
-          lista.push(`${R2_PUBLIC_URL}/stl/covers/${id}.${ext}`);
-          lista.push(`${R2_PUBLIC_URL}/covers/${id}.${ext}`);
-        }
-      }
-
       return [...new Set(lista.filter(Boolean))];
     }
 
-    function aplicarImagemComFallback(imgEl, candidatos, fallbackEl) {
-      let idx = 0;
-      function tentarProximo() {
-        if (idx >= candidatos.length) {
+    function aplicarCover(imgEl, candidatos, fallbackEl) {
+      let i = 0;
+      function next() {
+        if (i >= candidatos.length) {
           imgEl.style.display = 'none';
-          if (fallbackEl) fallbackEl.classList.remove('hidden');
+          fallbackEl.classList.remove('hidden');
           return;
         }
-        imgEl.src = candidatos[idx++];
+        imgEl.src = candidatos[i++];
       }
-      imgEl.onerror = tentarProximo;
+      imgEl.onerror = next;
       imgEl.onload = () => {
         imgEl.style.display = 'block';
-        if (fallbackEl) fallbackEl.classList.add('hidden');
+        fallbackEl.classList.add('hidden');
       };
-      tentarProximo();
+      next();
     }
 
-    function mostrarToast(msg, erro = false) {
-      const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.className = `fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl text-sm font-medium shadow-xl border ${
-        erro
-          ? 'bg-red-950/95 border-red-700 text-red-100'
-          : 'bg-emerald-950/95 border-emerald-700 text-emerald-100'
-      }`;
-      el.classList.remove('hidden');
-      clearTimeout(window.__toastTimer);
-      window.__toastTimer = setTimeout(() => el.classList.add('hidden'), 4000);
-    }
-
-    async function iniciarDownload(item) {
-      if (!memberToken) {
-        mostrarToast('Informe sua Chave de Acesso para baixar.', true);
-        abrirModalToken();
-        return;
-      }
-
-      const nomeArquivo = item.arquivo || item.arquivo_exato || item.caminho_relativo;
-      mostrarToast(`Localizando ${nomeArquivo} no servidor Trezzy 3D...`);
+    // LOGIN E SESSÃO
+    document.getElementById('form-login').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = document.getElementById('login-input').value.trim();
+      const errEl = document.getElementById('login-error');
+      errEl.classList.add('hidden');
 
       try {
-        const res = await fetch('/api/download', {
+        const res = await fetch('/api/auth/login', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${memberToken}`
-          },
-          body: JSON.stringify({
-            chave: item.chave,
-            arquivo: nomeArquivo,
-            caminho_relativo: item.caminho_relativo || null,
-            topico: item.topico || null
-          })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
         });
-
         const data = await res.json();
         if (!res.ok) {
-          mostrarToast(data.error || 'Erro ao localizar arquivo.', true);
+          errEl.textContent = data.error || 'Falha no login.';
+          errEl.classList.remove('hidden');
           return;
         }
 
-        mostrarToast('Download iniciado!');
-        window.location.href = data.url;
-      } catch (e) {
-        mostrarToast('Falha de comunicação com o servidor.', true);
+        sessionToken = data.token;
+        sessionRole = data.role;
+        localStorage.setItem('trezzy_session_token', sessionToken);
+        localStorage.setItem('trezzy_session_role', sessionRole);
+        iniciarDashboard();
+      } catch {
+        errEl.textContent = 'Erro de conexão com o servidor.';
+        errEl.classList.remove('hidden');
       }
+    });
+
+    function fazerLogout() {
+      localStorage.removeItem('trezzy_session_token');
+      localStorage.removeItem('trezzy_session_role');
+      sessionToken = '';
+      sessionRole = '';
+      document.getElementById('app-shell').classList.add('hidden');
+      document.getElementById('login-screen').classList.remove('hidden');
+      document.getElementById('login-input').value = '';
     }
 
-    function abrirModalDetalhes(item) {
-      const img = document.getElementById('modal-img');
-      aplicarImagemComFallback(img, obterCandidatosCover(item), null);
+    function mudarAba(aba) {
+      ['overview', 'catalogo', 'tokens', 'config'].forEach((id) => {
+        document.getElementById(`tab-${id}`).classList.add('hidden');
+        const btn = document.getElementById(`nav-${id}`);
+        if (btn) {
+          btn.className = 'nav-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left text-zinc-400 hover:bg-zinc-800/60 hover:text-white cursor-pointer whitespace-nowrap';
+        }
+      });
 
-      document.getElementById('modal-ext').textContent = item.extensao || '.3mf';
-      document.getElementById('modal-topico').textContent = item.topico || 'Geral';
-      document.getElementById('modal-titulo').textContent = formatarTitulo(item.titulo);
-      document.getElementById('modal-arquivo').textContent = item.arquivo || item.arquivo_exato || '-';
-      document.getElementById('modal-chave').textContent = item.chave;
-      document.getElementById('modal-tamanho').textContent = `${item.tamanho_mb} MB`;
-      document.getElementById('modal-btn-download').onclick = () => iniciarDownload(item);
+      document.getElementById(`tab-${aba}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`nav-${aba}`);
+      if (activeBtn) {
+        activeBtn.className = 'nav-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left bg-rose-600/15 text-rose-400 border border-rose-600/30 cursor-pointer whitespace-nowrap';
+      }
 
-      const modal = document.getElementById('modal-detalhes');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
+      const titulos = {
+        overview: 'Visão Geral',
+        catalogo: 'Catálogo Oficial Trezzy 3D',
+        tokens: 'Gerador de Tokens de Uso Único',
+        config: 'Configurações de Segurança',
+      };
+      document.getElementById('page-title').textContent = titulos[aba] || 'Dashboard';
+
+      if (aba === 'tokens') carregarTokens();
     }
 
-    function fecharModalDetalhes() {
-      const modal = document.getElementById('modal-detalhes');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    function abrirModalToken() {
-      document.getElementById('input-token-modal').value = memberToken;
-      const modal = document.getElementById('modal-token');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function fecharModalToken() {
-      const modal = document.getElementById('modal-token');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    function salvarToken() {
-      memberToken = document.getElementById('input-token-modal').value.trim();
-      localStorage.setItem('trezzy_member_token', memberToken);
-      atualizarStatusTokenUI();
-      fecharModalToken();
-      mostrarToast('Chave de acesso salva neste navegador.');
-    }
-
-    function criarCardHTML(item) {
+    function criarCard(item) {
       const card = document.createElement('div');
-      card.className = 'card-zoom bg-zinc-900 border border-zinc-800/90 rounded-xl overflow-hidden flex flex-col justify-between';
-
-      const tituloLimpo = formatarTitulo(item.titulo);
+      card.className = 'card-hover bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden flex flex-col justify-between';
+      const titulo = formatarTitulo(item.titulo);
 
       card.innerHTML = `
         <div>
-          <div class="relative aspect-video bg-zinc-950 overflow-hidden cursor-pointer group">
-            <img
-              alt="${tituloLimpo}"
-              loading="lazy"
-              class="card-cover-img w-full h-full object-cover group-hover:scale-105 transition duration-300"
-            />
-            <div class="card-cover-fallback hidden w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-900 to-zinc-950 text-zinc-500 p-4 text-center">
-              <span class="text-lg font-black uppercase text-rose-500/80">${item.extensao || '3D'}</span>
-              <span class="text-[11px] mt-1 line-clamp-1">${item.topico || 'Trezzy 3D'}</span>
+          <div class="relative aspect-video bg-zinc-950 overflow-hidden">
+            <img alt="${titulo}" loading="lazy" class="cov-img w-full h-full object-cover" />
+            <div class="cov-fb hidden w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-950 to-rose-950/20 p-4 text-center">
+              <div class="w-10 h-10 rounded-xl bg-rose-600/10 border border-rose-600/30 flex items-center justify-center text-rose-500 font-black text-xs mb-1.5">
+                3D
+              </div>
+              <span class="text-[11px] font-semibold text-zinc-300 line-clamp-1">${item.topico || 'Trezzy 3D'}</span>
+              <span class="text-[10px] text-zinc-500">Modelo sem prévia</span>
             </div>
-            <span class="absolute top-2 right-2 bg-black/80 backdrop-blur-sm border border-zinc-700/80 text-[10px] font-bold uppercase px-2 py-0.5 rounded text-zinc-200">
+            <span class="absolute top-2 right-2 bg-black/80 border border-zinc-700 text-[10px] font-bold uppercase px-2 py-0.5 rounded">
               ${item.extensao || '.3mf'}
             </span>
           </div>
           <div class="p-3.5">
-            <h3 class="text-sm font-semibold text-zinc-100 capitalize line-clamp-2 leading-snug cursor-pointer hover:text-rose-400 transition">
-              ${tituloLimpo}
-            </h3>
+            <span class="text-[10px] font-semibold text-rose-400 uppercase">${item.topico || 'Trezzy 3D'}</span>
+            <h3 class="text-sm font-bold text-white capitalize line-clamp-2 mt-0.5">${titulo}</h3>
           </div>
         </div>
         <div class="px-3.5 pb-3.5">
-          <div class="flex items-center justify-between text-[11px] text-zinc-400 mb-2.5">
+          <div class="flex justify-between text-[11px] text-zinc-400 mb-2.5">
             <span>${item.tamanho_mb} MB</span>
-            <span>#${item.message_id}</span>
+            <span>Trezzy 3D</span>
           </div>
           <button class="btn-dl w-full bg-zinc-800 hover:bg-rose-600 text-white text-xs font-bold py-2 rounded-lg transition cursor-pointer">
             Baixar Arquivo
@@ -393,135 +404,222 @@
         </div>
       `;
 
-      const imgEl = card.querySelector('.card-cover-img');
-      const fallbackEl = card.querySelector('.card-cover-fallback');
-      aplicarImagemComFallback(imgEl, obterCandidatosCover(item), fallbackEl);
-
-      card.querySelector('.aspect-video').onclick = () => abrirModalDetalhes(item);
-      card.querySelector('h3').onclick = () => abrirModalDetalhes(item);
-      card.querySelector('.btn-dl').onclick = () => iniciarDownload(item);
-
+      aplicarCover(card.querySelector('.cov-img'), obterCandidatosCover(item), card.querySelector('.cov-fb'));
+      card.querySelector('.btn-dl').onclick = () => baixarArquivo(item);
       return card;
     }
 
-    function renderizarCatalogo() {
-      const busca = document.getElementById('input-busca').value.toLowerCase().trim();
-      const topicoFiltro = document.getElementById('select-topico').value;
-      const extFiltro = document.getElementById('select-ext').value.toLowerCase();
+    async function baixarArquivo(item) {
+      const nome = item.arquivo || item.arquivo_exato || item.caminho_relativo;
+      mostrarToast(`Preparando download seguro de ${nome}...`);
 
-      const filtrados = catalogoCompleto.filter(item => {
-        const matchTopico = topicoFiltro === 'TODOS' || item.topico === topicoFiltro;
-        const matchExt = extFiltro === 'todas' || (item.extensao || '').toLowerCase() === extFiltro;
-        const nomeArq = item.arquivo || item.arquivo_exato || '';
-        const matchBusca = !busca ||
-          formatarTitulo(item.titulo).toLowerCase().includes(busca) ||
-          nomeArq.toLowerCase().includes(busca) ||
-          (item.chave || '').toLowerCase().includes(busca);
-        return matchTopico && matchExt && matchBusca;
-      });
-
-      const hero = document.getElementById('hero-section');
-      if (!busca && topicoFiltro === 'TODOS' && extFiltro === 'todas' && filtrados.length > 0) {
-        const destaque = filtrados.find(i => i.url_cover || i.cover_exata || i.cover_relativa) || filtrados[0];
-        const heroCover = obterCandidatosCover(destaque)[0] || '';
-        document.getElementById('hero-bg').style.backgroundImage = `url('${heroCover}')`;
-        document.getElementById('hero-topico').textContent = destaque.topico;
-        document.getElementById('hero-titulo').textContent = formatarTitulo(destaque.titulo);
-        document.getElementById('hero-meta').textContent =
-          `Formato ${(destaque.extensao || '').toUpperCase()} • ${destaque.tamanho_mb} MB • Coleção Trezzy 3D`;
-        document.getElementById('hero-btn-download').onclick = () => iniciarDownload(destaque);
-        document.getElementById('hero-btn-detalhes').onclick = () => abrirModalDetalhes(destaque);
-        hero.classList.remove('hidden');
-      } else {
-        hero.classList.add('hidden');
-      }
-
-      const container = document.getElementById('catalogo-container');
-      container.innerHTML = '';
-
-      if (filtrados.length === 0) {
-        container.innerHTML = `<div class="text-center py-16 text-zinc-400">Nenhum modelo encontrado para esse filtro.</div>`;
-        return;
-      }
-
-      const grupos = {};
-      filtrados.forEach(item => {
-        const t = item.topico || 'Geral';
-        if (!grupos[t]) grupos[t] = [];
-        grupos[t].push(item);
-      });
-
-      Object.entries(grupos).forEach(([topico, itens]) => {
-        const sec = document.createElement('section');
-        sec.innerHTML = `
-          <div class="flex items-center justify-between mb-3.5">
-            <h2 class="text-lg font-bold text-white flex items-center gap-2">
-              <span>${topico}</span>
-              <span class="text-xs font-normal text-zinc-500">(${itens.length})</span>
-            </h2>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-        `;
-
-        const grid = sec.querySelector('.grid');
-        const limite = topicoFiltro === 'TODOS' && !busca ? 12 : itens.length;
-        itens.slice(0, limite).forEach(item => grid.appendChild(criarCardHTML(item)));
-
-        if (itens.length > limite) {
-          const btnVerMais = document.createElement('button');
-          btnVerMais.className = 'mt-4 text-xs font-semibold text-rose-400 hover:text-rose-300 cursor-pointer';
-          btnVerMais.textContent = `Ver todos os ${itens.length} modelos de "${topico}" →`;
-          btnVerMais.onclick = () => {
-            document.getElementById('select-topico').value = topico;
-            renderizarCatalogo();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          };
-          sec.appendChild(btnVerMais);
-        }
-
-        container.appendChild(sec);
-      });
-    }
-
-    async function carregarDados() {
-      atualizarStatusTokenUI();
       try {
-        const res = await fetch('/api/catalogo', { cache: 'no-store' });
-        const json = await res.json();
+        const res = await fetch('/api/download', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionToken}`,
+          },
+          body: JSON.stringify({
+            chave: item.chave,
+            arquivo: nome,
+            caminho_relativo: item.caminho_relativo || null,
+            topico: item.topico || null,
+          }),
+        });
 
+        const data = await res.json();
         if (!res.ok) {
-          document.getElementById('loading-state').innerHTML =
-            `<p class="text-red-400 text-sm">${json.error || 'Erro ao localizar catalogo_site.json no R2.'}</p>`;
+          mostrarToast(data.error || 'Erro ao baixar.', true);
           return;
         }
 
-        catalogoCompleto = json.arquivos || json.itens || [];
-        topicosLista = json.topicos || [...new Set(catalogoCompleto.map(i => i.topico))];
+        mostrarToast('Download iniciado!');
+        window.location.href = data.url;
 
-        document.getElementById('badge-total').textContent = `${json.total_arquivos || catalogoCompleto.length} arquivos`;
-
-        const selectTopico = document.getElementById('select-topico');
-        topicosLista.forEach(t => {
-          const opt = document.createElement('option');
-          opt.value = t;
-          opt.textContent = t;
-          selectTopico.appendChild(opt);
-        });
-
-        document.getElementById('loading-state').classList.add('hidden');
-        document.getElementById('catalogo-container').classList.remove('hidden');
-        renderizarCatalogo();
-      } catch (err) {
-        document.getElementById('loading-state').innerHTML =
-          `<p class="text-red-400 text-sm">Erro de conexão ao carregar o catálogo.</p>`;
+        if (data.single_use_consumed) {
+          setTimeout(() => {
+            alert('Seu token de uso único foi utilizado com sucesso e encerrado.');
+            fazerLogout();
+          }, 2500);
+        }
+      } catch {
+        mostrarToast('Erro de rede ao solicitar download.', true);
       }
     }
 
-    document.getElementById('input-busca').addEventListener('input', renderizarCatalogo);
-    document.getElementById('select-topico').addEventListener('change', renderizarCatalogo);
-    document.getElementById('select-ext').addEventListener('change', renderizarCatalogo);
+    function renderizarCatalogoFiltrado() {
+      const busca = document.getElementById('input-busca').value.toLowerCase().trim();
+      const topico = document.getElementById('select-topico').value;
+      const ext = document.getElementById('select-ext').value.toLowerCase();
 
-    carregarDados();
+      const filtrados = catalogoCompleto.filter((item) => {
+        const mTop = topico === 'TODOS' || item.topico === topico;
+        const mExt = ext === 'todas' || (item.extensao || '').toLowerCase() === ext;
+        const mBusca =
+          !busca ||
+          formatarTitulo(item.titulo).toLowerCase().includes(busca) ||
+          (item.arquivo || '').toLowerCase().includes(busca);
+        return mTop && mExt && mBusca;
+      });
+
+      const grid = document.getElementById('catalogo-grid');
+      grid.innerHTML = '';
+      filtrados.slice(0, 60).forEach((item) => grid.appendChild(criarCard(item)));
+    }
+
+    // GERENCIAMENTO DE TOKENS DE USO ÚNICO
+    async function carregarTokens() {
+      if (sessionRole !== 'admin') return;
+      try {
+        const res = await fetch('/api/tokens', {
+          headers: { 'Authorization': `Bearer ${sessionToken}` },
+        });
+        const data = await res.json();
+        if (!res.ok) return;
+
+        const tbody = document.getElementById('tabela-tokens');
+        tbody.innerHTML = '';
+
+        const ativos = data.tokens.filter((t) => !t.used).length;
+        document.getElementById('stat-tokens').textContent = ativos;
+
+        data.tokens.forEach((t) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="px-4 py-3 font-mono font-bold text-white">${t.code}</td>
+            <td class="px-4 py-3 text-zinc-300">${t.label}</td>
+            <td class="px-4 py-3">
+              ${
+                t.used
+                  ? '<span class="bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded text-[10px] font-bold">UTILIZADO</span>'
+                  : '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold">DISPONÍVEL (1 USO)</span>'
+              }
+            </td>
+            <td class="px-4 py-3 text-zinc-400">${t.usedFile || '-'}</td>
+            <td class="px-4 py-3 text-right space-x-2">
+              ${
+                !t.used
+                  ? `<button onclick="copiarToken('${t.code}')" class="bg-zinc-800 hover:bg-zinc-700 text-white px-2.5 py-1 rounded cursor-pointer">Copiar</button>`
+                  : ''
+              }
+              <button onclick="excluirToken('${t.code}')" class="bg-red-950/80 hover:bg-red-900 text-red-300 px-2.5 py-1 rounded cursor-pointer">Excluir</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch {
+        // silencia
+      }
+    }
+
+    async function gerarNovoToken() {
+      const label = document.getElementById('input-token-label').value.trim() || 'Cliente Avulso';
+      const res = await fetch('/api/tokens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({ label }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        mostrarToast(data.error || 'Erro ao gerar token.', true);
+        return;
+      }
+      document.getElementById('input-token-label').value = '';
+      copiarToken(data.token.code);
+      carregarTokens();
+    }
+
+    function copiarToken(code) {
+      navigator.clipboard.writeText(code);
+      mostrarToast(`Token ${code} copiado para a área de transferência!`);
+    }
+
+    async function excluirToken(code) {
+      await fetch(`/api/tokens?code=${encodeURIComponent(code)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${sessionToken}` },
+      });
+      mostrarToast('Token removido.');
+      carregarTokens();
+    }
+
+    async function alterarSenhaAdmin() {
+      const newPassword = document.getElementById('input-nova-senha').value.trim();
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({ newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        mostrarToast(data.error || 'Erro ao alterar senha.', true);
+        return;
+      }
+      sessionToken = data.token;
+      localStorage.setItem('trezzy_session_token', sessionToken);
+      document.getElementById('input-nova-senha').value = '';
+      mostrarToast('Senha administrativa atualizada com sucesso!');
+    }
+
+    async function iniciarDashboard() {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app-shell').classList.remove('hidden');
+
+      const isAdmin = sessionRole === 'admin';
+      document.querySelectorAll('.admin-only').forEach((el) => {
+        el.style.display = isAdmin ? '' : 'none';
+      });
+      document.getElementById('role-badge').textContent = isAdmin ? 'Administrador' : 'Acesso Único';
+      document.getElementById('guest-banner').classList.toggle('hidden', isAdmin);
+
+      if (!isAdmin) {
+        mudarAba('catalogo');
+      } else {
+        mudarAba('overview');
+        carregarTokens();
+      }
+
+      const res = await fetch('/api/catalogo', { cache: 'no-store' });
+      const json = await res.json();
+      catalogoCompleto = json.arquivos || json.itens || [];
+
+      const totalMB = catalogoCompleto.reduce((acc, i) => acc + (Number(i.tamanho_mb) || 0), 0);
+      const topicos = [...new Set(catalogoCompleto.map((i) => i.topico).filter(Boolean))];
+
+      document.getElementById('stat-arquivos').textContent = catalogoCompleto.length;
+      document.getElementById('stat-gb').textContent = `${(totalMB / 1024).toFixed(2)} GB`;
+      document.getElementById('stat-categorias').textContent = topicos.length;
+
+      const selectTop = document.getElementById('select-topico');
+      selectTop.innerHTML = '<option value="TODOS">Todas as Categorias</option>';
+      topicos.forEach((t) => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        selectTop.appendChild(opt);
+      });
+
+      const recGrid = document.getElementById('overview-recentes');
+      recGrid.innerHTML = '';
+      catalogoCompleto.slice(0, 8).forEach((item) => recGrid.appendChild(criarCard(item)));
+
+      renderizarCatalogoFiltrado();
+    }
+
+    document.getElementById('input-busca').addEventListener('input', renderizarCatalogoFiltrado);
+    document.getElementById('select-topico').addEventListener('change', renderizarCatalogoFiltrado);
+    document.getElementById('select-ext').addEventListener('change', renderizarCatalogoFiltrado);
+
+    if (sessionToken) {
+      iniciarDashboard();
+    }
   </script>
 </body>
 </html>
