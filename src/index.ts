@@ -26,7 +26,7 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // 1. Proxy interno para o catalogo_site.json (elimina erro de CORS no navegador)
+    // 1. Proxy interno para o catalogo_site.json (inclui prefixo stl/index/)
     if (url.pathname === '/api/catalogo' && request.method === 'GET') {
       const base = (
         env.R2_PUBLIC_URL ||
@@ -34,6 +34,7 @@ export default {
       ).replace(/\/+$/, '');
 
       const caminhos = [
+        `${base}/stl/index/catalogo_site.json`,
         `${base}/index/catalogo_site.json`,
         `${base}/catalogo_site.json`,
       ];
@@ -98,9 +99,11 @@ export default {
           .replace(/^(\.\.(\/|\\|$))+/, '')
           .replace(/^\/+/, '');
 
-        const objectKey = safeFilename.startsWith('arquivos/')
-          ? safeFilename
-          : `arquivos/${safeFilename}`;
+        // Mantém o prefixo caso já venha no JSON, ou adiciona stl/arquivos/
+        let objectKey = safeFilename;
+        if (!safeFilename.startsWith('stl/') && !safeFilename.startsWith('arquivos/')) {
+          objectKey = `stl/arquivos/${safeFilename}`;
+        }
 
         const downloadFilename =
           safeFilename.split('/').pop() || 'modelo-trezzy.3mf';
