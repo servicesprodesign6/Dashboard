@@ -63,7 +63,7 @@
         <button
           onclick="abrirModalToken()"
           id="btn-token-status"
-          class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition"
+          class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
         >
           <span id="token-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
           <span>Chave de Acesso</span>
@@ -117,7 +117,7 @@
   <div id="modal-detalhes" onclick="fecharModalDetalhes()" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
     <div onclick="event.stopPropagation()" class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
       <div class="relative aspect-video bg-zinc-950 flex items-center justify-center">
-        <img id="modal-img" src="" alt="" class="w-full h-full object-cover" />
+        <img id="modal-img" src="" alt="" class="w-full h-full object-cover" onerror="this.style.display='none'" />
         <span id="modal-ext" class="absolute top-3 right-3 bg-black/80 border border-zinc-700 text-xs font-bold uppercase px-2.5 py-1 rounded-md"></span>
       </div>
       <div class="p-6">
@@ -132,10 +132,10 @@
         </div>
 
         <div class="flex items-center justify-end gap-3">
-          <button onclick="fecharModalDetalhes()" class="bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg">
+          <button onclick="fecharModalDetalhes()" class="bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg cursor-pointer">
             Fechar
           </button>
-          <button id="modal-btn-download" class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold px-5 py-2.5 rounded-lg">
+          <button id="modal-btn-download" class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold px-5 py-2.5 rounded-lg cursor-pointer">
             Download Seguro
           </button>
         </div>
@@ -157,10 +157,10 @@
         class="w-full bg-zinc-950 border border-zinc-700 focus:border-rose-600 focus:outline-none text-sm text-white px-3.5 py-2.5 rounded-lg mb-4"
       />
       <div class="flex justify-end gap-2">
-        <button onclick="fecharModalToken()" class="bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold px-4 py-2.5 rounded-lg">
+        <button onclick="fecharModalToken()" class="bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold px-4 py-2.5 rounded-lg cursor-pointer">
           Cancelar
         </button>
-        <button onclick="salvarToken()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-5 py-2.5 rounded-lg">
+        <button onclick="salvarToken()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-5 py-2.5 rounded-lg cursor-pointer">
           Salvar Chave
         </button>
       </div>
@@ -172,7 +172,10 @@
 
   <script>
     const R2_PUBLIC_URL = 'https://pub-9b4a5394ab8f4c7fae42da15591ac8cf.r2.dev';
-    const CATALOGO_URL = `${R2_PUBLIC_URL}/index/catalogo_site.json`;
+    const CATALOGO_URLS = [
+      `${R2_PUBLIC_URL}/catalogo_site.json`,
+      `${R2_PUBLIC_URL}/index/catalogo_site.json`
+    ];
 
     let catalogoCompleto = [];
     let topicosLista = [];
@@ -204,6 +207,9 @@
       if (item.url_cover && item.url_cover.includes('SEU_DOMINIO_R2')) {
         return item.url_cover.replace('https://SEU_DOMINIO_R2', R2_PUBLIC_URL);
       }
+      if (item.cover_relativa) {
+        return `${R2_PUBLIC_URL}/${item.cover_relativa.replace(/^\/+/, '')}`;
+      }
       return `${R2_PUBLIC_URL}/covers/${item.chave}.jpg`;
     }
 
@@ -227,7 +233,9 @@
         return;
       }
 
-      mostrarToast(`Gerando link seguro para ${item.arquivo}...`);
+      const nomeArquivo = item.arquivo || item.arquivo_exato || item.caminho_relativo;
+      mostrarToast(`Gerando link seguro para ${nomeArquivo}...`);
+
       try {
         const res = await fetch('/api/download', {
           method: 'POST',
@@ -237,7 +245,7 @@
           },
           body: JSON.stringify({
             chave: item.chave,
-            arquivo: item.arquivo
+            arquivo: nomeArquivo
           })
         });
 
@@ -255,11 +263,13 @@
     }
 
     function abrirModalDetalhes(item) {
-      document.getElementById('modal-img').src = resolverCover(item);
+      const img = document.getElementById('modal-img');
+      img.style.display = 'block';
+      img.src = resolverCover(item);
       document.getElementById('modal-ext').textContent = item.extensao || '.3mf';
       document.getElementById('modal-topico').textContent = item.topico || 'Geral';
       document.getElementById('modal-titulo').textContent = formatarTitulo(item.titulo);
-      document.getElementById('modal-arquivo').textContent = item.arquivo;
+      document.getElementById('modal-arquivo').textContent = item.arquivo || item.arquivo_exato || '-';
       document.getElementById('modal-chave').textContent = item.chave;
       document.getElementById('modal-tamanho').textContent = `${item.tamanho_mb} MB`;
       document.getElementById('modal-grupo').textContent = item.grupo || 'Trezzy 3D';
@@ -354,16 +364,17 @@
       const filtrados = catalogoCompleto.filter(item => {
         const matchTopico = topicoFiltro === 'TODOS' || item.topico === topicoFiltro;
         const matchExt = extFiltro === 'todas' || (item.extensao || '').toLowerCase() === extFiltro;
+        const nomeArq = item.arquivo || item.arquivo_exato || '';
         const matchBusca = !busca ||
           formatarTitulo(item.titulo).toLowerCase().includes(busca) ||
-          (item.arquivo || '').toLowerCase().includes(busca) ||
+          nomeArq.toLowerCase().includes(busca) ||
           (item.chave || '').toLowerCase().includes(busca);
         return matchTopico && matchExt && matchBusca;
       });
 
       const hero = document.getElementById('hero-section');
       if (!busca && topicoFiltro === 'TODOS' && extFiltro === 'todas' && filtrados.length > 0) {
-        const destaque = filtrados.find(i => i.url_cover) || filtrados[0];
+        const destaque = filtrados.find(i => i.url_cover || i.cover_exata) || filtrados[0];
         document.getElementById('hero-bg').style.backgroundImage = `url('${resolverCover(destaque)}')`;
         document.getElementById('hero-topico').textContent = destaque.topico;
         document.getElementById('hero-titulo').textContent = formatarTitulo(destaque.titulo);
@@ -425,30 +436,42 @@
 
     async function carregarDados() {
       atualizarStatusTokenUI();
-      try {
-        const res = await fetch(CATALOGO_URL, { cache: 'no-store' });
-        const json = await res.json();
+      let json = null;
 
-        catalogoCompleto = json.arquivos || json.itens || [];
-        topicosLista = json.topicos || [...new Set(catalogoCompleto.map(i => i.topico))];
-
-        document.getElementById('badge-total').textContent = `${json.total_arquivos || catalogoCompleto.length} arquivos`;
-
-        const selectTopico = document.getElementById('select-topico');
-        topicosLista.forEach(t => {
-          const opt = document.createElement('option');
-          opt.value = t;
-          opt.textContent = t;
-          selectTopico.appendChild(opt);
-        });
-
-        document.getElementById('loading-state').classList.add('hidden');
-        document.getElementById('catalogo-container').classList.remove('hidden');
-        renderizarCatalogo();
-      } catch (err) {
-        document.getElementById('loading-state').innerHTML =
-          `<p class="text-red-400 text-sm">Erro ao carregar <code>catalogo_site.json</code> do bucket R2. Verifique o CORS do bucket público.</p>`;
+      for (const url of CATALOGO_URLS) {
+        try {
+          const res = await fetch(url, { cache: 'no-store' });
+          if (res.ok) {
+            json = await res.json();
+            break;
+          }
+        } catch (e) {
+          // Tenta a próxima URL da lista
+        }
       }
+
+      if (!json) {
+        document.getElementById('loading-state').innerHTML =
+          `<p class="text-red-400 text-sm">Erro ao carregar <code>catalogo_site.json</code>. Confirme se o CORS do bucket público está liberado para <code>*</code>.</p>`;
+        return;
+      }
+
+      catalogoCompleto = json.arquivos || json.itens || [];
+      topicosLista = json.topicos || [...new Set(catalogoCompleto.map(i => i.topico))];
+
+      document.getElementById('badge-total').textContent = `${json.total_arquivos || catalogoCompleto.length} arquivos`;
+
+      const selectTopico = document.getElementById('select-topico');
+      topicosLista.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        selectTopico.appendChild(opt);
+      });
+
+      document.getElementById('loading-state').classList.add('hidden');
+      document.getElementById('catalogo-container').classList.remove('hidden');
+      renderizarCatalogo();
     }
 
     document.getElementById('input-busca').addEventListener('input', renderizarCatalogo);
