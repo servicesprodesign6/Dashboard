@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TREZZY | Biblioteca Oficial 3D</title>
+  <title>TREZZY 3D | Biblioteca Oficial</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
@@ -24,7 +24,7 @@
   <header class="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/80 px-4 md:px-8 py-3.5">
     <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
-        <span class="text-2xl font-black tracking-wider text-rose-600">TREZZY</span>
+        <span class="text-2xl font-black tracking-wider text-rose-600">TREZZY 3D</span>
         <span class="text-xs font-semibold uppercase tracking-wider bg-zinc-900 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-md">
           Área de Membros
         </span>
@@ -45,7 +45,7 @@
           id="select-topico"
           class="bg-zinc-900 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-3 py-2 rounded-lg max-w-[170px]"
         >
-          <option value="TODOS">Todos os Tópicos</option>
+          <option value="TODOS">Todas as Categorias</option>
         </select>
 
         <select
@@ -108,7 +108,7 @@
   <main id="main-content" class="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-8">
     <div id="loading-state" class="py-24 text-center text-zinc-400">
       <div class="inline-block w-8 h-8 border-2 border-rose-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-      <p class="text-sm">Sincronizando catálogo com Cloudflare R2...</p>
+      <p class="text-sm">Sincronizando catálogo Trezzy 3D...</p>
     </div>
     <div id="catalogo-container" class="space-y-10 hidden"></div>
   </main>
@@ -128,7 +128,7 @@
           <div><span class="text-zinc-500">Arquivo:</span> <span id="modal-arquivo" class="break-all"></span></div>
           <div><span class="text-zinc-500">Chave:</span> <span id="modal-chave"></span></div>
           <div><span class="text-zinc-500">Tamanho:</span> <span id="modal-tamanho"></span></div>
-          <div><span class="text-zinc-500">Grupo:</span> <span id="modal-grupo"></span></div>
+          <div><span class="text-zinc-500">Coleção:</span> <span class="text-rose-400 font-semibold">Trezzy 3D</span></div>
         </div>
 
         <div class="flex items-center justify-end gap-3">
@@ -148,7 +148,7 @@
     <div onclick="event.stopPropagation()" class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
       <h3 class="text-lg font-bold text-white mb-1">Chave de Acesso do Membro</h3>
       <p class="text-xs text-zinc-400 mb-4">
-        Insira sua chave de assinante para liberar os downloads diretos do servidor privado.
+        Insira sua chave de assinante Trezzy 3D para liberar os downloads diretos.
       </p>
       <input
         id="input-token-modal"
@@ -196,7 +196,7 @@
       }
     }
 
-    // Gera lista ordenada de possíveis URLs da capa no bucket R2
+    // Gera todas as combinações possíveis de caminho e extensão de capa
     function obterCandidatosCover(item) {
       const lista = [];
 
@@ -215,15 +215,27 @@
       }
 
       if (item.cover_exata) {
-        lista.push(`${R2_PUBLIC_URL}/stl/covers/${item.cover_exata}`);
-        lista.push(`${R2_PUBLIC_URL}/covers/${item.cover_exata}`);
+        const nomeCov = item.cover_exata.split('/').pop();
+        lista.push(`${R2_PUBLIC_URL}/stl/covers/${nomeCov}`);
+        lista.push(`${R2_PUBLIC_URL}/covers/${nomeCov}`);
       }
 
-      if (item.chave) {
-        lista.push(`${R2_PUBLIC_URL}/stl/covers/${item.chave}.jpg`);
-        lista.push(`${R2_PUBLIC_URL}/stl/covers/${item.chave}.png`);
-        lista.push(`${R2_PUBLIC_URL}/stl/covers/${item.chave}.webp`);
-        lista.push(`${R2_PUBLIC_URL}/covers/${item.chave}.jpg`);
+      const ids = new Set();
+      if (item.chave) ids.add(String(item.chave));
+      if (item.message_id) ids.add(String(item.message_id));
+
+      const rawArq = (item.arquivo || item.arquivo_exato || '').split('/').pop();
+      if (rawArq) {
+        const semExt = rawArq.replace(/\.[^/.]+$/, '');
+        ids.add(semExt);
+      }
+
+      const exts = ['jpg', 'jpeg', 'png', 'webp'];
+      for (const id of ids) {
+        for (const ext of exts) {
+          lista.push(`${R2_PUBLIC_URL}/stl/covers/${id}.${ext}`);
+          lista.push(`${R2_PUBLIC_URL}/covers/${id}.${ext}`);
+        }
       }
 
       return [...new Set(lista.filter(Boolean))];
@@ -268,7 +280,7 @@
       }
 
       const nomeArquivo = item.arquivo || item.arquivo_exato || item.caminho_relativo;
-      mostrarToast(`Localizando ${nomeArquivo} no servidor seguro...`);
+      mostrarToast(`Localizando ${nomeArquivo} no servidor Trezzy 3D...`);
 
       try {
         const res = await fetch('/api/download', {
@@ -294,7 +306,7 @@
         mostrarToast('Download iniciado!');
         window.location.href = data.url;
       } catch (e) {
-        mostrarToast('Falha de comunicação com o Worker.', true);
+        mostrarToast('Falha de comunicação com o servidor.', true);
       }
     }
 
@@ -308,7 +320,6 @@
       document.getElementById('modal-arquivo').textContent = item.arquivo || item.arquivo_exato || '-';
       document.getElementById('modal-chave').textContent = item.chave;
       document.getElementById('modal-tamanho').textContent = `${item.tamanho_mb} MB`;
-      document.getElementById('modal-grupo').textContent = item.grupo || 'Trezzy 3D';
       document.getElementById('modal-btn-download').onclick = () => iniciarDownload(item);
 
       const modal = document.getElementById('modal-detalhes');
@@ -359,7 +370,7 @@
             />
             <div class="card-cover-fallback hidden w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-900 to-zinc-950 text-zinc-500 p-4 text-center">
               <span class="text-lg font-black uppercase text-rose-500/80">${item.extensao || '3D'}</span>
-              <span class="text-[11px] mt-1 line-clamp-1">${item.topico || 'Modelo 3D'}</span>
+              <span class="text-[11px] mt-1 line-clamp-1">${item.topico || 'Trezzy 3D'}</span>
             </div>
             <span class="absolute top-2 right-2 bg-black/80 backdrop-blur-sm border border-zinc-700/80 text-[10px] font-bold uppercase px-2 py-0.5 rounded text-zinc-200">
               ${item.extensao || '.3mf'}
@@ -417,7 +428,7 @@
         document.getElementById('hero-topico').textContent = destaque.topico;
         document.getElementById('hero-titulo').textContent = formatarTitulo(destaque.titulo);
         document.getElementById('hero-meta').textContent =
-          `Formato ${(destaque.extensao || '').toUpperCase()} • ${destaque.tamanho_mb} MB • Grupo ${destaque.grupo || 'Trezzy 3D'}`;
+          `Formato ${(destaque.extensao || '').toUpperCase()} • ${destaque.tamanho_mb} MB • Coleção Trezzy 3D`;
         document.getElementById('hero-btn-download').onclick = () => iniciarDownload(destaque);
         document.getElementById('hero-btn-detalhes').onclick = () => abrirModalDetalhes(destaque);
         hero.classList.remove('hidden');
