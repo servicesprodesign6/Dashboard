@@ -26,7 +26,7 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // 1. Proxy interno para o catalogo_site.json (inclui prefixo stl/index/)
+    // 1. Proxy interno para o catalogo_site.json
     if (url.pathname === '/api/catalogo' && request.method === 'GET') {
       const base = (
         env.R2_PUBLIC_URL ||
@@ -66,7 +66,7 @@ export default {
       );
     }
 
-    // 2. Endpoint Protegido de Download (/api/download)
+    // 2. Endpoint Protegido de Download (/api/download) com detecção automática de pasta
     if (url.pathname === '/api/download' && request.method === 'POST') {
       try {
         const authHeader = request.headers.get('Authorization') || '';
@@ -89,21 +89,18 @@ export default {
         const body = (await request.json()) as {
           chave?: string;
           arquivo?: string;
+          caminho_relativo?: string;
+          topico?: string;
         };
 
-        if (!body.arquivo || typeof body.arquivo !== 'string') {
+        const rawPath = body.caminho_relativo || body.arquivo;
+        if (!rawPath || typeof rawPath !== 'string') {
           return jsonResponse({ error: 'Nome do arquivo inválido.' }, 400);
         }
 
-        const safeFilename = body.arquivo
+        const safeFilename = rawPath
           .replace(/^(\.\.(\/|\\|$))+/, '')
           .replace(/^\/+/, '');
-
-        // Mantém o prefixo caso já venha no JSON, ou adiciona stl/arquivos/
-        let objectKey = safeFilename;
-        if (!safeFilename.startsWith('stl/') && !safeFilename.startsWith('arquivos/')) {
-          objectKey = `stl/arquivos/${safeFilename}`;
-        }
 
         const downloadFilename =
           safeFilename.split('/').pop() || 'modelo-trezzy.3mf';
@@ -115,9 +112,49 @@ export default {
           region: 'auto',
         });
 
-        const endpoint = new URL(
-          `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_PRIVATE_BUCKET_NAME}/${objectKey}`
+        const baseBucketUrl = `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_PRIVATE_BUCKET_NAME}`;
+
+        // Candidatos de caminho dentro do bucket privado
+        const candidatos = Array.from(
+          new Set([
+            safeFilename,
+            `stl/${safeFilename}`,
+            `stl/arquivos/${safeFilename}`,
+            `arquivos/${safeFilename}`,
+            body.topico ? `stl/${body.topico}/${safeFilename}` : '',
+          ].filter(Boolean))
         );
+
+        let keyEncontrada: string | null = null;
+
+        for (const candidato of candidatos) {
+          const encodedKey = candidato
+            .split('/')
+            .map((part) => encodeURIComponent(part))
+            .join('/');
+
+          const headUrl = `${baseBucketUrl}/${encodedKey}`;
+          const signedHead = await r2.sign(
+            new Request(headUrl, { method: 'HEAD' })
+          );
+          const checkRes = await fetch(signedHead);
+
+          if (checkRes.ok) {
+            keyEncontrada = encodedKey;
+            break;
+          }
+        }
+
+        if (!keyEncontrada) {
+          return jsonResponse(
+            {
+              error: `Arquivo "${safeFilename}" não encontrado no bucket "${env.R2_PRIVATE_BUCKET_NAME}".`,
+            },
+            404
+          );
+        }
+
+        const endpoint = new URL(`${baseBucketUrl}/${keyEncontrada}`);
         endpoint.searchParams.set('X-Amz-Expires', '300');
         endpoint.searchParams.set(
           'response-content-disposition',
