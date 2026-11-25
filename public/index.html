@@ -201,12 +201,13 @@
         return item.url_cover;
       }
       if (item.url_cover && item.url_cover.includes('SEU_DOMINIO_R2')) {
-        return item.url_cover.replace('https://SEU_DOMINIO_R2', R2_PUBLIC_URL);
+        return item.url_cover.replace('https://SEU_DOMINIO_R2', `${R2_PUBLIC_URL}/stl`);
       }
       if (item.cover_relativa) {
-        return `${R2_PUBLIC_URL}/${item.cover_relativa.replace(/^\/+/, '')}`;
+        const rel = item.cover_relativa.replace(/^\/+/, '');
+        return rel.startsWith('stl/') ? `${R2_PUBLIC_URL}/${rel}` : `${R2_PUBLIC_URL}/stl/${rel}`;
       }
-      return `${R2_PUBLIC_URL}/covers/${item.chave}.jpg`;
+      return `${R2_PUBLIC_URL}/stl/covers/${item.chave}.jpg`;
     }
 
     function mostrarToast(msg, erro = false) {
