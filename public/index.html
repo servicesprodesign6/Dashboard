@@ -172,10 +172,6 @@
 
   <script>
     const R2_PUBLIC_URL = 'https://pub-9b4a5394ab8f4c7fae42da15591ac8cf.r2.dev';
-    const CATALOGO_URLS = [
-      `${R2_PUBLIC_URL}/catalogo_site.json`,
-      `${R2_PUBLIC_URL}/index/catalogo_site.json`
-    ];
 
     let catalogoCompleto = [];
     let topicosLista = [];
@@ -436,42 +432,36 @@
 
     async function carregarDados() {
       atualizarStatusTokenUI();
-      let json = null;
+      try {
+        const res = await fetch('/api/catalogo', { cache: 'no-store' });
+        const json = await res.json();
 
-      for (const url of CATALOGO_URLS) {
-        try {
-          const res = await fetch(url, { cache: 'no-store' });
-          if (res.ok) {
-            json = await res.json();
-            break;
-          }
-        } catch (e) {
-          // Tenta a próxima URL da lista
+        if (!res.ok) {
+          document.getElementById('loading-state').innerHTML =
+            `<p class="text-red-400 text-sm">${json.error || 'Erro ao localizar catalogo_site.json no R2.'}</p>`;
+          return;
         }
-      }
 
-      if (!json) {
+        catalogoCompleto = json.arquivos || json.itens || [];
+        topicosLista = json.topicos || [...new Set(catalogoCompleto.map(i => i.topico))];
+
+        document.getElementById('badge-total').textContent = `${json.total_arquivos || catalogoCompleto.length} arquivos`;
+
+        const selectTopico = document.getElementById('select-topico');
+        topicosLista.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t;
+          opt.textContent = t;
+          selectTopico.appendChild(opt);
+        });
+
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('catalogo-container').classList.remove('hidden');
+        renderizarCatalogo();
+      } catch (err) {
         document.getElementById('loading-state').innerHTML =
-          `<p class="text-red-400 text-sm">Erro ao carregar <code>catalogo_site.json</code>. Confirme se o CORS do bucket público está liberado para <code>*</code>.</p>`;
-        return;
+          `<p class="text-red-400 text-sm">Erro de conexão ao carregar o catálogo.</p>`;
       }
-
-      catalogoCompleto = json.arquivos || json.itens || [];
-      topicosLista = json.topicos || [...new Set(catalogoCompleto.map(i => i.topico))];
-
-      document.getElementById('badge-total').textContent = `${json.total_arquivos || catalogoCompleto.length} arquivos`;
-
-      const selectTopico = document.getElementById('select-topico');
-      topicosLista.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t;
-        opt.textContent = t;
-        selectTopico.appendChild(opt);
-      });
-
-      document.getElementById('loading-state').classList.add('hidden');
-      document.getElementById('catalogo-container').classList.remove('hidden');
-      renderizarCatalogo();
     }
 
     document.getElementById('input-busca').addEventListener('input', renderizarCatalogo);
