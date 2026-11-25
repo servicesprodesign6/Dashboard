@@ -1,12 +1,18 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "trezzy-membros",
+  "name": "dashboard",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
   "assets": {
     "directory": "./public",
     "binding": "ASSETS"
   },
+  "kv_namespaces": [
+    {
+      "binding": "TREZZY_KV",
+      "id": "378c05ecd11b4061949d9310fd2476a5"
+    }
+  ],
   "vars": {
     "R2_PUBLIC_URL": "https://pub-9b4a5394ab8f4c7fae42da15591ac8cf.r2.dev"
   }
