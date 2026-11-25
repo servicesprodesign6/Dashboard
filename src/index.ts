@@ -18,6 +18,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
+function slugifyTopico(topico: string): string {
+  return topico
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -66,7 +75,7 @@ export default {
       );
     }
 
-    // 2. Endpoint Protegido de Download (/api/download) com detecção automática de pasta
+    // 2. Endpoint Protegido de Download (/api/download)
     if (url.pathname === '/api/download' && request.method === 'POST') {
       try {
         const authHeader = request.headers.get('Authorization') || '';
@@ -102,8 +111,8 @@ export default {
           .replace(/^(\.\.(\/|\\|$))+/, '')
           .replace(/^\/+/, '');
 
-        const downloadFilename =
-          safeFilename.split('/').pop() || 'modelo-trezzy.3mf';
+        const onlyFilename = safeFilename.split('/').pop() || safeFilename;
+        const topicoSlug = body.topico ? slugifyTopico(body.topico) : '';
 
         const r2 = new AwsClient({
           accessKeyId: env.R2_ACCESS_KEY_ID,
@@ -114,15 +123,18 @@ export default {
 
         const baseBucketUrl = `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_PRIVATE_BUCKET_NAME}`;
 
-        // Candidatos de caminho dentro do bucket privado
+        // Candidatos diretos baseados na estrutura real do bucket (arquivos/<slug>/<arquivo>)
         const candidatos = Array.from(
-          new Set([
-            safeFilename,
-            `stl/${safeFilename}`,
-            `stl/arquivos/${safeFilename}`,
-            `arquivos/${safeFilename}`,
-            body.topico ? `stl/${body.topico}/${safeFilename}` : '',
-          ].filter(Boolean))
+          new Set(
+            [
+              safeFilename,
+              `stl/${safeFilename}`,
+              topicoSlug ? `arquivos/${topicoSlug}/${onlyFilename}` : '',
+              topicoSlug ? `stl/arquivos/${topicoSlug}/${onlyFilename}` : '',
+              `arquivos/${onlyFilename}`,
+              `stl/arquivos/${onlyFilename}`,
+            ].filter(Boolean)
+          )
         );
 
         let keyEncontrada: string | null = null;
@@ -145,10 +157,39 @@ export default {
           }
         }
 
+        // Plano B infalível: busca o objeto no bucket pelo prefixo de ID/nome se a subpasta tiver outro nome
+        if (!keyEncontrada) {
+          const listUrl = new URL(baseBucketUrl);
+          listUrl.searchParams.set('list-type', '2');
+          listUrl.searchParams.set('max-keys', '1000');
+
+          const signedList = await r2.sign(
+            new Request(listUrl.toString(), { method: 'GET' })
+          );
+          const listRes = await fetch(signedList);
+
+          if (listRes.ok) {
+            const xml = await listRes.text();
+            const keyMatches = [...xml.matchAll(/<Key>(.*?)<\/Key>/g)].map(
+              (m) => m[1]
+            );
+            const foundRawKey = keyMatches.find(
+              (k) => k === onlyFilename || k.endsWith(`/${onlyFilename}`)
+            );
+
+            if (foundRawKey) {
+              keyEncontrada = foundRawKey
+                .split('/')
+                .map((part) => encodeURIComponent(part))
+                .join('/');
+            }
+          }
+        }
+
         if (!keyEncontrada) {
           return jsonResponse(
             {
-              error: `Arquivo "${safeFilename}" não encontrado no bucket "${env.R2_PRIVATE_BUCKET_NAME}".`,
+              error: `Arquivo "${onlyFilename}" não encontrado no servidor Trezzy 3D.`,
             },
             404
           );
@@ -158,7 +199,7 @@ export default {
         endpoint.searchParams.set('X-Amz-Expires', '300');
         endpoint.searchParams.set(
           'response-content-disposition',
-          `attachment; filename="${encodeURIComponent(downloadFilename)}"`
+          `attachment; filename="${encodeURIComponent(onlyFilename)}"`
         );
 
         const signedRequest = await r2.sign(
