@@ -55,6 +55,26 @@ async function getAdminPassword(env: Env): Promise<string> {
   return env.MEMBER_ACCESS_SECRET || 'trezzy2026';
 }
 
+// Gera token de sessão administrativa válido por 24h (nunca expõe a senha real no navegador)
+async function gerarTokenSessaoAdmin(adminPass: string): Promise<string> {
+  const diaAtual = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+  const raw = new TextEncoder().encode(`trezzy_admin_session_${adminPass}_${diaAtual}`);
+  const hash = await crypto.subtle.digest('SHA-256', raw);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function validarSessaoAdmin(request: Request, env: Env): Promise<boolean> {
+  const authHeader = request.headers.get('Authorization') || '';
+  const tokenRecebido = authHeader.replace(/^Bearer\s+/i, '').trim();
+  if (!tokenRecebido) return false;
+
+  const adminPass = await getAdminPassword(env);
+  const tokenValidoHoje = await gerarTokenSessaoAdmin(adminPass);
+  return tokenRecebido === tokenValidoHoje;
+}
+
 function getSbKey(env: Env): string {
   return (env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 }
@@ -90,7 +110,7 @@ async function enviarCodigoResend(
   if (!env.RESEND_API_KEY) {
     return { ok: false, error: 'RESEND_API_KEY não configurada.' };
   }
-  const from = env.RESEND_FROM_EMAIL || 'Trezzy 3D <onboarding@resend.dev>';
+  const from = env.RESEND_FROM_EMAIL || 'Trezzy 3D <noreply@trezzyimpressao3d.shop>';
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -238,7 +258,6 @@ export default {
 
           if (!createRes.ok) {
             const errDetail = await createRes.text();
-            console.error('[SUPABASE_REGISTER_ERROR]', createRes.status, errDetail);
             return jsonResponse(
               { error: `Erro Supabase (${createRes.status}): ${errDetail}` },
               500
@@ -302,7 +321,7 @@ export default {
       return jsonResponse({ token: rows[0].id, message: 'Conta ativada com sucesso!' });
     }
 
-    // 3. Login (Usuário E-mail/Senha ou Admin)
+    // 3. Login (Usuário E-mail/Senha ou Admin Blindado Anti-Brute-Force)
     if (url.pathname === '/api/auth/login' && request.method === 'POST') {
       const body = (await request.json()) as {
         email?: string;
@@ -314,9 +333,41 @@ export default {
       const adminPass = await getAdminPassword(env);
 
       if (body.scope === 'admin') {
-        if (password && password === adminPass) {
-          return jsonResponse({ role: 'admin', token: password });
+        const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+        const lockKey = `ADMIN_LOCK_${clientIp}`;
+
+        if (env.TREZZY_KV) {
+          const attemptsRaw = await env.TREZZY_KV.get(lockKey);
+          const attempts = Number(attemptsRaw || '0');
+          if (attempts >= 5) {
+            return jsonResponse(
+              { error: 'Muitas tentativas incorretas. Acesso bloqueado por 30 minutos.' },
+              429
+            );
+          }
         }
+
+        if (password && password === adminPass) {
+          if (env.TREZZY_KV) await env.TREZZY_KV.delete(lockKey);
+          const sessionToken = await gerarTokenSessaoAdmin(adminPass);
+          return jsonResponse({ role: 'admin', token: sessionToken });
+        }
+
+        if (env.TREZZY_KV) {
+          const attempts = Number((await env.TREZZY_KV.get(lockKey)) || '0') + 1;
+          await env.TREZZY_KV.put(lockKey, String(attempts), { expirationTtl: 1800 });
+          const restantes = Math.max(0, 5 - attempts);
+          return jsonResponse(
+            {
+              error:
+                restantes > 0
+                  ? `Senha incorreta. Restam ${restantes} tentativa(s) antes do bloqueio.`
+                  : 'IP bloqueado por 30 minutos por segurança.',
+            },
+            401
+          );
+        }
+
         return jsonResponse({ error: 'Senha administrativa incorreta.' }, 401);
       }
 
@@ -336,7 +387,6 @@ export default {
       }
 
       const users = (await res.json()) as any[];
-
       if (!users[0]) {
         return jsonResponse({ error: 'E-mail ou senha incorretos.' }, 401);
       }
@@ -426,18 +476,14 @@ export default {
 
     // 6.1 Alterar Senha Administrativa
     if (url.pathname === '/api/auth/change-password' && request.method === 'POST') {
-      const authHeader = request.headers.get('Authorization') || '';
-      const currentToken = authHeader.replace(/^Bearer\s+/i, '').trim();
-      const adminPass = await getAdminPassword(env);
-
-      if (currentToken !== adminPass) {
+      if (!(await validarSessaoAdmin(request, env))) {
         return jsonResponse({ error: 'Acesso negado.' }, 403);
       }
 
       const body = (await request.json()) as { newPassword?: string };
       const newPass = (body.newPassword || '').trim();
-      if (newPass.length < 4) {
-        return jsonResponse({ error: 'Mínimo de 4 caracteres.' }, 400);
+      if (newPass.length < 6) {
+        return jsonResponse({ error: 'Mínimo de 6 caracteres.' }, 400);
       }
 
       if (!env.TREZZY_KV) {
@@ -445,13 +491,13 @@ export default {
       }
 
       await env.TREZZY_KV.put('ADMIN_CUSTOM_PASSWORD', newPass);
-      return jsonResponse({ success: true, token: newPass });
+      const newSessionToken = await gerarTokenSessaoAdmin(newPass);
+      return jsonResponse({ success: true, token: newSessionToken });
     }
 
     // 7. Painel Admin
     if (url.pathname === '/api/admin/overview') {
-      const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
-      if (token !== (await getAdminPassword(env))) {
+      if (!(await validarSessaoAdmin(request, env))) {
         return jsonResponse({ error: 'Acesso negado.' }, 403);
       }
 
@@ -470,8 +516,7 @@ export default {
     }
 
     if (url.pathname === '/api/admin/codes') {
-      const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
-      if (token !== (await getAdminPassword(env))) {
+      if (!(await validarSessaoAdmin(request, env))) {
         return jsonResponse({ error: 'Acesso negado.' }, 403);
       }
 
