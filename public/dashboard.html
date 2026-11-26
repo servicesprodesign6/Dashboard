@@ -6,12 +6,16 @@
   <title>TREZZY 3D | Dashboard do Membro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background-color: #09090b; color: #f4f4f5; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      background-color: #09090b;
+      color: #f4f4f5;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
   </style>
 </head>
 <body class="min-h-screen bg-zinc-950 text-zinc-100">
 
-  <!-- TELA DE AUTENTICAÇÃO (ENTRAR / CRIAR CONTA) -->
+  <!-- TELA DE AUTENTICAÇÃO (ENTRAR / CRIAR CONTA / VERIFICAR E-MAIL) -->
   <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-rose-950/25 via-zinc-950 to-zinc-950">
     <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl">
       <div class="text-center mb-6">
@@ -20,7 +24,7 @@
       </div>
 
       <!-- Abas Login / Cadastro -->
-      <div class="grid grid-cols-2 bg-zinc-950 p-1 rounded-xl border border-zinc-800 mb-6">
+      <div id="auth-tabs" class="grid grid-cols-2 bg-zinc-950 p-1 rounded-xl border border-zinc-800 mb-6">
         <button id="tab-btn-login" onclick="alternarAuth('login')" class="py-2 rounded-lg text-xs font-bold bg-rose-600 text-white cursor-pointer">
           Entrar na Conta
         </button>
@@ -33,11 +37,23 @@
       <form id="form-login" class="space-y-4">
         <div>
           <label class="block text-xs text-zinc-400 mb-1">E-mail</label>
-          <input id="login-email" type="email" required placeholder="seu@email.com" class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm px-4 py-2.5 rounded-xl" />
+          <input
+            id="login-email"
+            type="email"
+            required
+            placeholder="seu@email.com"
+            class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+          />
         </div>
         <div>
           <label class="block text-xs text-zinc-400 mb-1">Senha</label>
-          <input id="login-pass" type="password" required placeholder="••••••••" class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm px-4 py-2.5 rounded-xl" />
+          <input
+            id="login-pass"
+            type="password"
+            required
+            placeholder="••••••••"
+            class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+          />
         </div>
         <button type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm py-3 rounded-xl transition cursor-pointer">
           Acessar Dashboard
@@ -48,26 +64,83 @@
       <form id="form-register" class="hidden space-y-3.5">
         <div>
           <label class="block text-xs text-zinc-400 mb-1">Seu Nome</label>
-          <input id="reg-name" type="text" required placeholder="Como deseja ser chamado" class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm px-4 py-2.5 rounded-xl" />
+          <input
+            id="reg-name"
+            type="text"
+            required
+            placeholder="Como deseja ser chamado"
+            class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+          />
         </div>
         <div>
           <label class="block text-xs text-zinc-400 mb-1">Seu Melhor E-mail</label>
-          <input id="reg-email" type="email" required placeholder="seu@email.com" class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm px-4 py-2.5 rounded-xl" />
+          <input
+            id="reg-email"
+            type="email"
+            required
+            placeholder="seu@email.com"
+            class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+          />
         </div>
         <div>
           <label class="block text-xs text-zinc-400 mb-1">Crie uma Senha</label>
-          <input id="reg-pass" type="password" required placeholder="Mínimo 4 caracteres" class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm px-4 py-2.5 rounded-xl" />
+          <input
+            id="reg-pass"
+            type="password"
+            required
+            placeholder="Mínimo 4 caracteres"
+            class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+          />
         </div>
         <div>
-          <label class="block text-xs text-zinc-400 mb-1">Chave de Ativação <span class="text-zinc-500">(Opcional — ganha 1 grátis sem chave)</span></label>
-          <input id="reg-code" type="text" placeholder="Ex: TRZ-PRO-89A2B1" class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm font-mono px-4 py-2.5 rounded-xl" />
+          <label class="block text-xs text-zinc-400 mb-1">
+            Chave de Ativação <span class="text-zinc-500">(Opcional — ganha 1 grátis sem chave)</span>
+          </label>
+          <input
+            id="reg-code"
+            type="text"
+            placeholder="Ex: TRZ-PRO-89A2B1"
+            class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm font-mono text-white px-4 py-2.5 rounded-xl"
+          />
         </div>
         <button type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm py-3 rounded-xl transition cursor-pointer">
           Criar Minha Conta Agora
         </button>
       </form>
 
+      <!-- FORM CONFIRMAR CÓDIGO DE E-MAIL (RESEND) -->
+      <form id="form-verify" class="hidden space-y-4">
+        <p class="text-xs text-zinc-300 text-center leading-relaxed">
+          Enviamos um código de 6 dígitos para<br />
+          <strong id="verify-email-label" class="text-rose-400"></strong>
+        </p>
+        <input
+          id="verify-code-input"
+          type="text"
+          maxlength="6"
+          required
+          placeholder="000000"
+          class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-center text-2xl font-mono tracking-widest text-white py-3 rounded-xl"
+        />
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm py-3 rounded-xl transition cursor-pointer">
+          Confirmar & Ativar Conta
+        </button>
+        <button
+          type="button"
+          onclick="voltarParaCadastro()"
+          class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold py-2 rounded-xl cursor-pointer"
+        >
+          Voltar
+        </button>
+      </form>
+
       <p id="auth-error" class="text-xs text-red-400 text-center mt-4 hidden"></p>
+
+      <div class="mt-6 pt-4 border-t border-zinc-800 text-center">
+        <a href="/#planos" class="text-xs text-zinc-400 hover:text-rose-400">
+          Ver pacotes de downloads disponíveis →
+        </a>
+      </div>
     </div>
   </div>
 
@@ -79,10 +152,12 @@
       <div>
         <div class="p-5 border-b border-zinc-800 flex items-center justify-between">
           <div>
-            <span class="text-xl font-black tracking-wider text-rose-600">TREZZY 3D</span>
+            <a href="/" class="text-xl font-black tracking-wider text-rose-600">TREZZY 3D</a>
             <span id="sidebar-plan" class="block text-[10px] font-bold uppercase text-emerald-400 mt-0.5">Carregando...</span>
           </div>
-          <button onclick="logout()" class="md:hidden text-xs bg-zinc-800 px-3 py-1.5 rounded-lg">Sair</button>
+          <button onclick="logout()" class="md:hidden text-xs bg-zinc-800 px-3 py-1.5 rounded-lg text-zinc-300">
+            Sair
+          </button>
         </div>
 
         <nav class="p-3 flex md:flex-col gap-1 overflow-x-auto">
@@ -114,7 +189,7 @@
 
     <!-- Conteúdo Principal -->
     <div class="flex-1 flex flex-col min-w-0">
-      <header class="bg-zinc-950 border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+      <header class="bg-zinc-950 border-b border-zinc-800 px-6 py-4 flex items-center justify-between gap-2">
         <h1 id="header-titulo" class="text-lg font-bold text-white">Visão Geral</h1>
         <span id="header-badge-creditos" class="bg-emerald-950/80 border border-emerald-700/50 text-emerald-300 text-xs font-bold px-3 py-1 rounded-lg">
           0 créditos
@@ -143,7 +218,9 @@
           <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-sm font-bold text-white">Últimos Modelos Adicionados</h2>
-              <button onclick="abrirAba('catalogo')" class="text-xs font-bold text-rose-400 hover:underline cursor-pointer">Abrir catálogo completo →</button>
+              <button onclick="abrirAba('catalogo')" class="text-xs font-bold text-rose-400 hover:underline cursor-pointer">
+                Abrir catálogo completo →
+              </button>
             </div>
             <div id="grid-recentes" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
           </div>
@@ -152,15 +229,21 @@
         <!-- ABA 2: CATÁLOGO 3D -->
         <section id="sec-catalogo" class="hidden space-y-5">
           <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex flex-wrap gap-3">
-            <input id="busca-input" type="text" placeholder="Buscar modelo..." class="flex-1 min-w-[200px] bg-zinc-950 border border-zinc-800 text-sm px-4 py-2.5 rounded-xl" />
-            <select id="filtro-topico" class="bg-zinc-950 border border-zinc-800 text-sm px-4 py-2.5 rounded-xl">
+            <input
+              id="busca-input"
+              type="text"
+              placeholder="Buscar modelo por nome ou arquivo..."
+              class="flex-1 min-w-[200px] bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+            />
+            <select id="filtro-topico" class="bg-zinc-950 border border-zinc-800 text-sm text-white px-4 py-2.5 rounded-xl">
               <option value="TODOS">Todas Categorias</option>
             </select>
-            <select id="filtro-ext" class="bg-zinc-950 border border-zinc-800 text-sm px-4 py-2.5 rounded-xl">
+            <select id="filtro-ext" class="bg-zinc-950 border border-zinc-800 text-sm text-white px-4 py-2.5 rounded-xl">
               <option value="TODAS">Todas Extensões</option>
               <option value=".3mf">.3mf</option>
               <option value=".stl">.stl</option>
               <option value=".zip">.zip</option>
+              <option value=".rar">.rar</option>
             </select>
           </div>
           <div id="grid-catalogo" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
@@ -170,12 +253,17 @@
         <section id="sec-plano" class="hidden space-y-6 max-w-2xl">
           <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
             <h2 class="text-base font-bold text-white">Ativar / Recarregar Chave de Plano</h2>
-            <p class="text-xs text-zinc-400">
+            <p class="text-xs text-zinc-400 leading-relaxed">
               Comprou um pacote Teste (10), Premium (50) ou VIP? Cole sua chave única abaixo para adicionar os downloads à sua conta:
             </p>
-            <div class="flex gap-3">
-              <input id="input-redeem" type="text" placeholder="Ex: TRZ-PRO-89A2B1" class="flex-1 bg-zinc-950 border border-zinc-800 text-sm font-mono px-4 py-2.5 rounded-xl" />
-              <button onclick="resgatarChave()" class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl cursor-pointer">
+            <div class="flex flex-col sm:flex-row gap-3">
+              <input
+                id="input-redeem"
+                type="text"
+                placeholder="Ex: TRZ-PRO-89A2B1"
+                class="flex-1 bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm font-mono text-white px-4 py-2.5 rounded-xl"
+              />
+              <button onclick="resgatarChave()" class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl transition cursor-pointer">
                 Ativar Chave
               </button>
             </div>
@@ -187,17 +275,20 @@
 
           <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
             <div class="p-4 border-b border-zinc-800">
-              <h3 class="text-sm font-bold">Meu Histórico de Downloads</h3>
+              <h3 class="text-sm font-bold text-white">Meu Histórico de Downloads</h3>
             </div>
-            <table class="w-full text-left text-xs">
-              <thead class="bg-zinc-950 text-zinc-400">
-                <tr>
-                  <th class="px-4 py-2.5">Arquivo</th>
-                  <th class="px-4 py-2.5">Data</th>
-                </tr>
-              </thead>
-              <tbody id="tbody-historico" class="divide-y divide-zinc-800"></tbody>
-            </table>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-zinc-950 text-zinc-400 uppercase">
+                  <tr>
+                    <th class="px-4 py-2.5">Arquivo</th>
+                    <th class="px-4 py-2.5">Categoria</th>
+                    <th class="px-4 py-2.5">Data</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-historico" class="divide-y divide-zinc-800"></tbody>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -205,8 +296,14 @@
         <section id="sec-conta" class="hidden max-w-md">
           <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
             <h2 class="text-base font-bold text-white">Alterar Minha Senha</h2>
-            <input id="input-nova-senha" type="password" placeholder="Nova senha (mínimo 4 caracteres)" class="w-full bg-zinc-950 border border-zinc-800 text-sm px-4 py-2.5 rounded-xl" />
-            <button onclick="salvarNovaSenha()" class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold px-5 py-2.5 rounded-xl cursor-pointer">
+            <p class="text-xs text-zinc-400">Defina uma nova senha de acesso para a sua conta.</p>
+            <input
+              id="input-nova-senha"
+              type="password"
+              placeholder="Nova senha (mínimo 4 caracteres)"
+              class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+            />
+            <button onclick="salvarNovaSenha()" class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition cursor-pointer">
               Atualizar Senha
             </button>
           </div>
@@ -216,11 +313,13 @@
     </div>
   </div>
 
+  <!-- Toast -->
   <div id="toast" class="fixed bottom-5 right-5 z-50 hidden px-4 py-3 rounded-xl text-sm font-medium shadow-xl border"></div>
 
   <script>
     const R2_PUBLIC_URL = 'https://pub-9b4a5394ab8f4c7fae42da15591ac8cf.r2.dev';
     let userToken = localStorage.getItem('trezzy_uid') || '';
+    let pendingVerifyEmail = '';
     let catalogo = [];
 
     function toast(msg, err = false) {
@@ -230,43 +329,80 @@
         err ? 'bg-red-950 border-red-700 text-red-100' : 'bg-emerald-950 border-emerald-700 text-emerald-100'
       }`;
       el.classList.remove('hidden');
-      setTimeout(() => el.classList.add('hidden'), 4000);
+      clearTimeout(window.__t);
+      window.__t = setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    function mostrarErroAuth(msg) {
+      const err = document.getElementById('auth-error');
+      err.textContent = msg;
+      err.classList.remove('hidden');
     }
 
     function alternarAuth(modo) {
       const isLogin = modo === 'login';
+      document.getElementById('auth-tabs').classList.remove('hidden');
+      document.getElementById('form-verify').classList.add('hidden');
       document.getElementById('form-login').classList.toggle('hidden', !isLogin);
       document.getElementById('form-register').classList.toggle('hidden', isLogin);
+
       document.getElementById('tab-btn-login').className = isLogin
         ? 'py-2 rounded-lg text-xs font-bold bg-rose-600 text-white cursor-pointer'
-        : 'py-2 rounded-lg text-xs font-bold text-zinc-400 cursor-pointer';
+        : 'py-2 rounded-lg text-xs font-bold text-zinc-400 hover:text-white cursor-pointer';
       document.getElementById('tab-btn-register').className = !isLogin
         ? 'py-2 rounded-lg text-xs font-bold bg-rose-600 text-white cursor-pointer'
-        : 'py-2 rounded-lg text-xs font-bold text-zinc-400 cursor-pointer';
+        : 'py-2 rounded-lg text-xs font-bold text-zinc-400 hover:text-white cursor-pointer';
+
       document.getElementById('auth-error').classList.add('hidden');
     }
 
+    function abrirTelaVerificacao(email) {
+      pendingVerifyEmail = email;
+      document.getElementById('verify-email-label').textContent = email;
+      document.getElementById('auth-tabs').classList.add('hidden');
+      document.getElementById('form-login').classList.add('hidden');
+      document.getElementById('form-register').classList.add('hidden');
+      document.getElementById('form-verify').classList.remove('hidden');
+      document.getElementById('auth-error').classList.add('hidden');
+    }
+
+    function voltarParaCadastro() {
+      alternarAuth('register');
+    }
+
+    // LOGIN
     document.getElementById('form-login').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-pass').value.trim();
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, scope: 'member' }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        const err = document.getElementById('auth-error');
-        err.textContent = data.error;
-        err.classList.remove('hidden');
-        return;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, scope: 'member' }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          if (data.requiresVerification && data.email) {
+            abrirTelaVerificacao(data.email);
+            mostrarErroAuth(data.error);
+            return;
+          }
+          mostrarErroAuth(data.error || 'Falha ao entrar.');
+          return;
+        }
+
+        userToken = data.token;
+        localStorage.setItem('trezzy_uid', userToken);
+        iniciarApp();
+      } catch {
+        mostrarErroAuth('Erro de conexão com o servidor.');
       }
-      userToken = data.token;
-      localStorage.setItem('trezzy_uid', userToken);
-      iniciarApp();
     });
 
+    // CRIAR CONTA
     document.getElementById('form-register').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('reg-name').value.trim();
@@ -274,21 +410,56 @@
       const password = document.getElementById('reg-pass').value.trim();
       const redeemCode = document.getElementById('reg-code').value.trim();
 
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, redeemCode }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        const err = document.getElementById('auth-error');
-        err.textContent = data.error;
-        err.classList.remove('hidden');
-        return;
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password, redeemCode }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          mostrarErroAuth(data.error || 'Erro ao criar conta.');
+          return;
+        }
+
+        if (data.requiresVerification) {
+          abrirTelaVerificacao(data.email || email);
+          return;
+        }
+
+        userToken = data.token;
+        localStorage.setItem('trezzy_uid', userToken);
+        iniciarApp();
+      } catch {
+        mostrarErroAuth('Erro de conexão ao registrar.');
       }
-      userToken = data.token;
-      localStorage.setItem('trezzy_uid', userToken);
-      iniciarApp();
+    });
+
+    // CONFIRMAR CÓDIGO DE E-MAIL (RESEND)
+    document.getElementById('form-verify').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = document.getElementById('verify-code-input').value.trim();
+
+      try {
+        const res = await fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: pendingVerifyEmail, code }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          mostrarErroAuth(data.error || 'Código inválido.');
+          return;
+        }
+
+        userToken = data.token;
+        localStorage.setItem('trezzy_uid', userToken);
+        iniciarApp();
+      } catch {
+        mostrarErroAuth('Erro de conexão ao validar código.');
+      }
     });
 
     function logout() {
@@ -296,6 +467,7 @@
       userToken = '';
       document.getElementById('dashboard-shell').classList.add('hidden');
       document.getElementById('auth-screen').classList.remove('hidden');
+      alternarAuth('login');
     }
 
     function abrirAba(aba) {
@@ -307,36 +479,57 @@
       document.getElementById(`sec-${aba}`).classList.remove('hidden');
       document.getElementById(`nav-${aba}`).className =
         'nav-item flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold bg-rose-600/15 text-rose-400 border border-rose-600/30 cursor-pointer whitespace-nowrap';
+
+      const titulos = {
+        resumo: 'Visão Geral',
+        catalogo: 'Catálogo Oficial 3D',
+        plano: 'Meu Plano & Resgate de Chave',
+        conta: 'Configurações da Conta',
+      };
+      document.getElementById('header-titulo').textContent = titulos[aba] || 'Dashboard';
     }
 
     async function carregarPerfil() {
-      const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${userToken}` } });
+      const res = await fetch('/api/me', {
+        headers: { Authorization: `Bearer ${userToken}` },
+      });
       if (!res.ok) {
         logout();
         return false;
       }
+
       const me = await res.json();
       document.getElementById('sidebar-user-name').textContent = me.name;
       document.getElementById('sidebar-user-email').textContent = me.email;
       document.getElementById('sidebar-plan').textContent = me.planName;
 
-      const credText = me.isVip ? 'VIP Ilimitado' : `${me.credits} downloads`;
+      const credText = me.isVip ? '👑 VIP Ilimitado' : `${me.credits} downloads`;
       document.getElementById('header-badge-creditos').textContent = credText;
       document.getElementById('kpi-creditos').textContent = me.isVip ? 'ALL' : me.credits;
       document.getElementById('kpi-baixados').textContent = me.downloadsUsed || 0;
 
       const tbody = document.getElementById('tbody-historico');
       tbody.innerHTML = '';
-      (me.history || []).forEach((h) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td class="px-4 py-2.5 text-white">${h.arquivo}</td><td class="px-4 py-2.5 text-zinc-400">${new Date(h.downloaded_at).toLocaleString('pt-BR')}</td>`;
-        tbody.appendChild(tr);
-      });
+      if (!me.history || me.history.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-4 text-center text-zinc-500">Nenhum download realizado ainda.</td></tr>`;
+      } else {
+        me.history.forEach((h) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="px-4 py-2.5 text-white font-medium">${h.arquivo}</td>
+            <td class="px-4 py-2.5 text-zinc-400">${h.topico || '-'}</td>
+            <td class="px-4 py-2.5 text-zinc-500">${new Date(h.downloaded_at).toLocaleString('pt-BR')}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
       return true;
     }
 
     async function resgatarChave() {
       const code = document.getElementById('input-redeem').value.trim();
+      if (!code) return;
+
       const res = await fetch('/api/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${userToken}` },
@@ -344,7 +537,7 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        toast(data.error, true);
+        toast(data.error || 'Chave inválida.', true);
         return;
       }
       document.getElementById('input-redeem').value = '';
@@ -361,7 +554,7 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        toast(data.error, true);
+        toast(data.error || 'Erro ao alterar senha.', true);
         return;
       }
       document.getElementById('input-nova-senha').value = '';
@@ -369,74 +562,147 @@
     }
 
     function formatarTitulo(raw) {
-      try { return decodeURIComponent(raw || '').replace(/\+/g, ' ').replace(/_/g, ' ').trim(); }
-      catch { return (raw || '').replace(/\+/g, ' ').replace(/_/g, ' '); }
+      try {
+        return decodeURIComponent(raw || '').replace(/\+/g, ' ').replace(/_/g, ' ').trim();
+      } catch {
+        return (raw || '').replace(/\+/g, ' ').replace(/_/g, ' ');
+      }
+    }
+
+    function obterCandidatosCover(item) {
+      const lista = [];
+      if (item.url_cover) {
+        let u = item.url_cover.replace('https://SEU_DOMINIO_R2', R2_PUBLIC_URL);
+        if (u.startsWith(R2_PUBLIC_URL) && !u.includes(`${R2_PUBLIC_URL}/stl/`)) {
+          lista.push(u.replace(R2_PUBLIC_URL, `${R2_PUBLIC_URL}/stl`));
+        }
+        lista.push(u);
+      }
+      if (item.cover_relativa) {
+        const rel = item.cover_relativa.replace(/^\/+/, '');
+        lista.push(rel.startsWith('stl/') ? `${R2_PUBLIC_URL}/${rel}` : `${R2_PUBLIC_URL}/stl/${rel}`);
+      }
+      if (item.chave) {
+        lista.push(`${R2_PUBLIC_URL}/stl/covers/${item.chave}.jpg`);
+        lista.push(`${R2_PUBLIC_URL}/covers/${item.chave}.jpg`);
+      }
+      return [...new Set(lista.filter(Boolean))];
+    }
+
+    function aplicarCover(imgEl, candidatos, fallbackEl) {
+      let i = 0;
+      function next() {
+        if (i >= candidatos.length) {
+          imgEl.style.display = 'none';
+          fallbackEl.classList.remove('hidden');
+          return;
+        }
+        imgEl.src = candidatos[i++];
+      }
+      imgEl.onerror = next;
+      imgEl.onload = () => {
+        imgEl.style.display = 'block';
+        fallbackEl.classList.add('hidden');
+      };
+      next();
     }
 
     function criarCard(item) {
       const card = document.createElement('div');
       card.className = 'bg-zinc-900 border border-zinc-800 hover:border-rose-600 transition rounded-xl overflow-hidden flex flex-col justify-between';
-      let cover = (item.url_cover || '').replace('https://SEU_DOMINIO_R2', `${R2_PUBLIC_URL}/stl`);
-      if (cover.startsWith(R2_PUBLIC_URL) && !cover.includes(`${R2_PUBLIC_URL}/stl/`)) {
-        cover = cover.replace(R2_PUBLIC_URL, `${R2_PUBLIC_URL}/stl`);
-      }
+      const titulo = formatarTitulo(item.titulo);
 
       card.innerHTML = `
         <div>
-          <div class="relative aspect-video bg-zinc-950">
-            <img src="${cover}" loading="lazy" onerror="this.style.display='none'" class="w-full h-full object-cover" />
-            <span class="absolute top-2 right-2 bg-black/80 text-[10px] font-bold uppercase px-2 py-0.5 rounded">${item.extensao || '.3mf'}</span>
+          <div class="relative aspect-video bg-zinc-950 overflow-hidden">
+            <img alt="${titulo}" loading="lazy" class="cov-img w-full h-full object-cover" />
+            <div class="cov-fb hidden w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-950 to-rose-950/20 p-4 text-center">
+              <div class="w-9 h-9 rounded-xl bg-rose-600/10 border border-rose-600/30 flex items-center justify-center text-rose-500 font-black text-xs mb-1">
+                3D
+              </div>
+              <span class="text-[11px] font-semibold text-zinc-300 line-clamp-1">${item.topico || 'Trezzy 3D'}</span>
+            </div>
+            <span class="absolute top-2 right-2 bg-black/80 border border-zinc-700 text-[10px] font-bold uppercase px-2 py-0.5 rounded">
+              ${item.extensao || '.3mf'}
+            </span>
           </div>
           <div class="p-3.5">
             <span class="text-[10px] font-bold text-rose-400 uppercase">${item.topico || 'Trezzy 3D'}</span>
-            <h3 class="text-sm font-bold text-white capitalize line-clamp-2 mt-0.5">${formatarTitulo(item.titulo)}</h3>
+            <h3 class="text-sm font-bold text-white capitalize line-clamp-2 mt-0.5">${titulo}</h3>
           </div>
         </div>
         <div class="px-3.5 pb-3.5">
+          <div class="flex justify-between text-[11px] text-zinc-400 mb-2">
+            <span>${item.tamanho_mb} MB</span>
+            <span>Trezzy 3D</span>
+          </div>
           <button class="btn-dl w-full bg-zinc-800 hover:bg-rose-600 text-white text-xs font-bold py-2 rounded-lg transition cursor-pointer">
-            Baixar Arquivo (${item.tamanho_mb} MB)
+            ⬇ Baixar Arquivo
           </button>
         </div>
       `;
+
+      aplicarCover(card.querySelector('.cov-img'), obterCandidatosCover(item), card.querySelector('.cov-fb'));
       card.querySelector('.btn-dl').onclick = () => baixarArquivo(item);
       return card;
     }
 
     async function baixarArquivo(item) {
       const nome = item.arquivo || item.arquivo_exato || item.caminho_relativo;
-      toast(`Preparando download de ${nome}...`);
-      const res = await fetch('/api/download', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${userToken}` },
-        body: JSON.stringify({ arquivo: nome, caminho_relativo: item.caminho_relativo, topico: item.topico }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast(data.error, true);
-        return;
+      toast(`Preparando download seguro de ${nome}...`);
+
+      try {
+        const res = await fetch('/api/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${userToken}` },
+          body: JSON.stringify({
+            arquivo: nome,
+            caminho_relativo: item.caminho_relativo || null,
+            topico: item.topico || null,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          toast(data.error || 'Erro ao baixar.', true);
+          return;
+        }
+        toast('Download iniciado!');
+        window.location.href = data.url;
+        carregarPerfil();
+      } catch {
+        toast('Erro de rede ao solicitar download.', true);
       }
-      window.location.href = data.url;
-      carregarPerfil();
     }
 
     function filtrar() {
-      const q = document.getElementById('busca-input').value.toLowerCase();
+      const q = document.getElementById('busca-input').value.toLowerCase().trim();
       const top = document.getElementById('filtro-topico').value;
       const ext = document.getElementById('filtro-ext').value.toLowerCase();
+
       const grid = document.getElementById('grid-catalogo');
       grid.innerHTML = '';
+
       catalogo
-        .filter((i) => (top === 'TODOS' || i.topico === top) && (ext === 'todas' || (i.extensao || '').toLowerCase() === ext) && (!q || formatarTitulo(i.titulo).toLowerCase().includes(q)))
+        .filter((i) => {
+          const mTop = top === 'TODOS' || i.topico === top;
+          const mExt = ext === 'todas' || (i.extensao || '').toLowerCase() === ext;
+          const mQ =
+            !q ||
+            formatarTitulo(i.titulo).toLowerCase().includes(q) ||
+            (i.arquivo || '').toLowerCase().includes(q);
+          return mTop && mExt && mQ;
+        })
         .slice(0, 60)
         .forEach((i) => grid.appendChild(criarCard(i)));
     }
 
     async function iniciarApp() {
       if (!(await carregarPerfil())) return;
+
       document.getElementById('auth-screen').classList.add('hidden');
       document.getElementById('dashboard-shell').classList.remove('hidden');
 
-      const res = await fetch('/api/catalogo');
+      const res = await fetch('/api/catalogo', { cache: 'no-store' });
       const json = await res.json();
       catalogo = json.arquivos || json.itens || [];
       document.getElementById('kpi-acervo').textContent = catalogo.length;
@@ -454,6 +720,7 @@
       const rec = document.getElementById('grid-recentes');
       rec.innerHTML = '';
       catalogo.slice(0, 8).forEach((i) => rec.appendChild(criarCard(i)));
+
       filtrar();
     }
 
