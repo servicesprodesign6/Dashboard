@@ -4,7 +4,10 @@ export interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
   TREZZY_KV?: KVNamespace;
   SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
+  SUPABASE_SECRET_KEY?: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
   R2_ACCOUNT_ID: string;
   R2_ACCESS_KEY_ID: string;
   R2_SECRET_ACCESS_KEY: string;
@@ -52,17 +55,53 @@ async function getAdminPassword(env: Env): Promise<string> {
   return env.MEMBER_ACCESS_SECRET || 'trezzy2026';
 }
 
+function getSbKey(env: Env): string {
+  return env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || '';
+}
+
 async function sbFetch(env: Env, path: string, init: RequestInit = {}): Promise<Response> {
   const baseUrl = env.SUPABASE_URL.replace(/\/+$/, '');
+  const key = getSbKey(env);
   return fetch(`${baseUrl}/rest/v1/${path}`, {
     ...init,
     headers: {
-      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+      apikey: key,
+      Authorization: `Bearer ${key}`,
       'Content-Type': 'application/json',
       ...(init.headers || {}),
     },
   });
+}
+
+async function enviarCodigoResend(env: Env, toEmail: string, name: string, code: string): Promise<boolean> {
+  if (!env.RESEND_API_KEY) return false;
+  const from = env.RESEND_FROM_EMAIL || 'Trezzy 3D <onboarding@resend.dev>';
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: [toEmail],
+      subject: `Código de Ativação Trezzy 3D: ${code}`,
+      html: `
+        <div style="font-family:sans-serif;background:#09090b;color:#f4f4f5;padding:32px;border-radius:12px;max-width:480px;margin:auto;">
+          <h2 style="color:#e11d48;margin-bottom:8px;">TREZZY 3D</h2>
+          <p>Olá, <strong>${name}</strong>!</p>
+          <p>Use o código abaixo para ativar sua conta e liberar seu acesso à biblioteca:</p>
+          <div style="background:#18181b;border:1px solid #27272a;padding:16px;text-align:center;font-size:28px;font-weight:bold;letter-spacing:6px;color:#ffffff;border-radius:8px;margin:20px 0;">
+            ${code}
+          </div>
+          <p style="font-size:12px;color:#a1a1aa;">Se você não solicitou este cadastro, ignore este e-mail.</p>
+        </div>
+      `,
+    }),
+  });
+
+  return res.ok;
 }
 
 export default {
@@ -103,7 +142,7 @@ export default {
       return jsonResponse({ error: 'Catálogo não encontrado.' }, 404);
     }
 
-    // 2. Criar Conta de Usuário (E-mail + Senha)
+    // 2. Criar Conta + Envio de Código via Resend
     if (url.pathname === '/api/auth/register' && request.method === 'POST') {
       const body = (await request.json()) as {
         name?: string;
@@ -121,48 +160,93 @@ export default {
         return jsonResponse({ error: 'Preencha nome, e-mail e senha (mínimo 4 caracteres).' }, 400);
       }
 
-      // Verifica se e-mail já existe
       const existingRes = await sbFetch(
         env,
-        `trezzy_users?email=eq.${encodeURIComponent(email)}&select=id`
+        `trezzy_users?email=eq.${encodeURIComponent(email)}&select=id,verified`
       );
-      const existing = (await existingRes.json()) as { id: string }[];
-      if (existing.length > 0) {
-        return jsonResponse({ error: 'Este e-mail já possui uma conta cadastrada.' }, 409);
+      const existing = (await existingRes.json()) as any[];
+      if (existing.length > 0 && existing[0].verified) {
+        return jsonResponse({ error: 'Este e-mail já está cadastrado e ativo.' }, 409);
       }
 
       const password_hash = await hashPassword(password);
+      const code6 = String(Math.floor(100000 + Math.random() * 900000));
+      const usarResend = Boolean(env.RESEND_API_KEY);
 
-      // Cria usuário (1 crédito grátis de boas-vindas se não informar chave)
-      const createRes = await sbFetch(env, 'trezzy_users', {
-        method: 'POST',
-        headers: { Prefer: 'return=representation' },
-        body: JSON.stringify({
-          name,
-          email,
-          password_hash,
-          plan_name: 'Conta Gratuita (1 Teste)',
-          credits: 1,
-          is_vip: false,
-        }),
-      });
+      let userId: string;
 
-      if (!createRes.ok) {
-        return jsonResponse({ error: 'Erro ao criar conta no banco de dados.' }, 500);
+      if (existing.length > 0 && !existing[0].verified) {
+        // Reenvia código para conta pendente
+        userId = existing[0].id;
+        await sbFetch(env, `trezzy_users?id=eq.${userId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name,
+            password_hash,
+            verification_code: code6,
+            verified: !usarResend,
+          }),
+        });
+      } else {
+        const createRes = await sbFetch(env, 'trezzy_users', {
+          method: 'POST',
+          headers: { Prefer: 'return=representation' },
+          body: JSON.stringify({
+            name,
+            email,
+            password_hash,
+            plan_name: 'Conta Gratuita (1 Teste)',
+            credits: 1,
+            is_vip: false,
+            verified: !usarResend,
+            verification_code: usarResend ? code6 : null,
+          }),
+        });
+
+        if (!createRes.ok) {
+          return jsonResponse({ error: 'Erro ao criar conta no Supabase.' }, 500);
+        }
+        const created = (await createRes.json()) as any[];
+        userId = created[0].id;
       }
 
-      const createdUsers = (await createRes.json()) as any[];
-      const user = createdUsers[0];
-
-      // Se o usuário já colocou uma chave no cadastro, resgata automaticamente
       if (redeemCode) {
-        await aplicarCodigoNaConta(env, user.id, redeemCode);
+        await aplicarCodigoNaConta(env, userId, redeemCode);
       }
 
-      return jsonResponse({
-        token: user.id,
-        message: 'Conta criada com sucesso!',
+      if (usarResend) {
+        await enviarCodigoResend(env, email, name, code6);
+        return jsonResponse({
+          requiresVerification: true,
+          email,
+          message: 'Enviamos um código de 6 dígitos para o seu e-mail!',
+        });
+      }
+
+      return jsonResponse({ token: userId });
+    }
+
+    // 2.1. Confirmar Código de Ativação enviado pelo Resend
+    if (url.pathname === '/api/auth/verify' && request.method === 'POST') {
+      const body = (await request.json()) as { email?: string; code?: string };
+      const email = (body.email || '').trim().toLowerCase();
+      const code = (body.code || '').trim();
+
+      const res = await sbFetch(
+        env,
+        `trezzy_users?email=eq.${encodeURIComponent(email)}&verification_code=eq.${encodeURIComponent(code)}&select=id`
+      );
+      const rows = (await res.json()) as any[];
+      if (!rows[0]) {
+        return jsonResponse({ error: 'Código de ativação incorreto.' }, 400);
+      }
+
+      await sbFetch(env, `trezzy_users?id=eq.${rows[0].id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ verified: true, verification_code: null }),
       });
+
+      return jsonResponse({ token: rows[0].id, message: 'Conta ativada com sucesso!' });
     }
 
     // 3. Login (Usuário E-mail/Senha ou Admin)
@@ -185,7 +269,7 @@ export default {
 
       const email = (body.email || '').trim().toLowerCase();
       if (!email || !password) {
-        return jsonResponse({ error: 'Informe seu e-mail e senha.' }, 400);
+        return jsonResponse({ error: 'Informe e-mail e senha.' }, 400);
       }
 
       const password_hash = await hashPassword(password);
@@ -199,10 +283,14 @@ export default {
         return jsonResponse({ error: 'E-mail ou senha incorretos.' }, 401);
       }
 
-      return jsonResponse({
-        role: 'member',
-        token: users[0].id,
-      });
+      if (users[0].verified === false) {
+        return jsonResponse(
+          { requiresVerification: true, email, error: 'Confirme o código enviado para seu e-mail antes de entrar.' },
+          403
+        );
+      }
+
+      return jsonResponse({ role: 'member', token: users[0].id });
     }
 
     // 4. Dados da Conta Logada (/api/me)
@@ -222,8 +310,6 @@ export default {
       if (!users[0]) return jsonResponse({ error: 'Conta não encontrada.' }, 401);
 
       const u = users[0];
-      const history = await histRes.json();
-
       return jsonResponse({
         id: u.id,
         name: u.name,
@@ -232,11 +318,11 @@ export default {
         isVip: u.is_vip,
         credits: u.credits,
         downloadsUsed: u.downloads_used,
-        history,
+        history: await histRes.json(),
       });
     }
 
-    // 5. Resgatar Chave de Uso Único na Conta (/api/redeem)
+    // 5. Resgatar Chave de Plano (/api/redeem)
     if (url.pathname === '/api/redeem' && request.method === 'POST') {
       const userId = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
       if (!userId) return jsonResponse({ error: 'Faça login primeiro.' }, 401);
@@ -246,13 +332,11 @@ export default {
       if (!code) return jsonResponse({ error: 'Digite o código da chave.' }, 400);
 
       const result = await aplicarCodigoNaConta(env, userId, code);
-      if (!result.ok) {
-        return jsonResponse({ error: result.error }, 400);
-      }
+      if (!result.ok) return jsonResponse({ error: result.error }, 400);
       return jsonResponse({ success: true, message: result.message });
     }
 
-    // 6. Alterar Senha do Próprio Usuário
+    // 6. Alterar Senha do Usuário
     if (url.pathname === '/api/user/change-password' && request.method === 'POST') {
       const userId = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
       if (!userId) return jsonResponse({ error: 'Não autenticado.' }, 401);
@@ -260,7 +344,7 @@ export default {
       const body = (await request.json()) as { newPassword?: string };
       const newPassword = (body.newPassword || '').trim();
       if (newPassword.length < 4) {
-        return jsonResponse({ error: 'A nova senha deve ter pelo menos 4 caracteres.' }, 400);
+        return jsonResponse({ error: 'Mínimo 4 caracteres.' }, 400);
       }
 
       const password_hash = await hashPassword(newPassword);
@@ -272,7 +356,7 @@ export default {
       return jsonResponse({ success: true });
     }
 
-    // 7. Painel Admin: Gerar / Listar Chaves + Listar Usuários
+    // 7. Painel Admin
     if (url.pathname === '/api/admin/overview') {
       const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
       if (token !== (await getAdminPassword(env))) {
@@ -331,7 +415,7 @@ export default {
       }
     }
 
-    // 8. Download Protegido por Conta de Usuário
+    // 8. Download Protegido por Conta
     if (url.pathname === '/api/download' && request.method === 'POST') {
       try {
         const userId = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
@@ -342,10 +426,9 @@ export default {
         const user = users[0];
 
         if (!user) return jsonResponse({ error: 'Conta inválida.' }, 401);
-
         if (!user.is_vip && user.credits <= 0) {
           return jsonResponse(
-            { error: 'Seus créditos acabaram! Resgate uma nova chave na aba Meu Plano.' },
+            { error: 'Seus créditos acabaram! Resgate uma chave na aba Meu Plano.' },
             403
           );
         }
@@ -399,17 +482,13 @@ export default {
           return jsonResponse({ error: `Arquivo "${onlyFilename}" não encontrado no R2.` }, 404);
         }
 
-        // Desconta 1 crédito (se não for VIP) e salva no histórico do usuário
         const newCredits = user.is_vip ? user.credits : Math.max(0, user.credits - 1);
         const newDownloadsUsed = (user.downloads_used || 0) + 1;
 
         await Promise.all([
           sbFetch(env, `trezzy_users?id=eq.${encodeURIComponent(userId)}`, {
             method: 'PATCH',
-            body: JSON.stringify({
-              credits: newCredits,
-              downloads_used: newDownloadsUsed,
-            }),
+            body: JSON.stringify({ credits: newCredits, downloads_used: newDownloadsUsed }),
           }),
           sbFetch(env, 'trezzy_user_downloads', {
             method: 'POST',
