@@ -1,9 +1,7 @@
 import { AwsClient } from 'aws4fetch';
 
 export interface Env {
-  ASSETS: {
-    fetch: (request: Request) => Promise<Response>;
-  };
+  ASSETS: { fetch: (request: Request) => Promise<Response> };
   TREZZY_KV?: KVNamespace;
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
@@ -17,22 +15,10 @@ export interface Env {
 
 type PlanTier = 'teste' | 'premium' | 'vip';
 
-interface DbToken {
-  code: string;
-  label: string;
-  plan: PlanTier;
-  plan_name: string;
-  max_downloads: number | null;
-  downloads_used: number;
-  active: boolean;
-  created_at: string;
-  last_used_at: string | null;
-}
-
-const PLAN_CONFIG: Record<PlanTier, { name: string; max: number | null; prefix: string }> = {
-  teste: { name: 'Teste (10 Downloads)', max: 10, prefix: 'TRZ-TEST' },
-  premium: { name: 'Premium (50 Downloads)', max: 50, prefix: 'TRZ-PRO' },
-  vip: { name: 'VIP (ALL Downloads + Updates)', max: null, prefix: 'TRZ-VIP' },
+const PLAN_CONFIG: Record<PlanTier, { name: string; credits: number; isVip: boolean; prefix: string }> = {
+  teste: { name: 'Teste (10 Downloads)', credits: 10, isVip: false, prefix: 'TRZ-TEST' },
+  premium: { name: 'Premium (50 Downloads)', credits: 50, isVip: false, prefix: 'TRZ-PRO' },
+  vip: { name: 'VIP (ALL Downloads + Updates)', credits: 0, isVip: true, prefix: 'TRZ-VIP' },
 };
 
 const corsHeaders = {
@@ -50,10 +36,18 @@ function slugifyTopico(topico: string): string {
     .replace(/^_+|_+$/g, '');
 }
 
+async function hashPassword(password: string): Promise<string> {
+  const data = new TextEncoder().encode(`trezzy_salt_2026_${password}`);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 async function getAdminPassword(env: Env): Promise<string> {
   if (env.TREZZY_KV) {
-    const customPass = await env.TREZZY_KV.get('ADMIN_CUSTOM_PASSWORD');
-    if (customPass) return customPass;
+    const custom = await env.TREZZY_KV.get('ADMIN_CUSTOM_PASSWORD');
+    if (custom) return custom;
   }
   return env.MEMBER_ACCESS_SECRET || 'trezzy2026';
 }
@@ -79,20 +73,17 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // 1. Proxy do Catálogo R2
+    // 1. Proxy Catálogo R2
     if (url.pathname === '/api/catalogo' && request.method === 'GET') {
       const base = (
-        env.R2_PUBLIC_URL ||
-        'https://pub-9b4a5394ab8f4c7fae42da15591ac8cf.r2.dev'
+        env.R2_PUBLIC_URL || 'https://pub-9b4a5394ab8f4c7fae42da15591ac8cf.r2.dev'
       ).replace(/\/+$/, '');
 
-      const caminhos = [
+      for (const targetUrl of [
         `${base}/stl/index/catalogo_site.json`,
         `${base}/index/catalogo_site.json`,
         `${base}/catalogo_site.json`,
-      ];
-
-      for (const targetUrl of caminhos) {
+      ]) {
         try {
           const res = await fetch(targetUrl, { cf: { cacheTtl: 60, cacheEverything: true } });
           if (res.ok) {
@@ -109,147 +100,200 @@ export default {
           // próximo
         }
       }
-      return jsonResponse({ error: 'catalogo_site.json não encontrado no R2.' }, 404);
+      return jsonResponse({ error: 'Catálogo não encontrado.' }, 404);
     }
 
-    // 2. Login Separado (Admin vs Membro)
+    // 2. Criar Conta de Usuário (E-mail + Senha)
+    if (url.pathname === '/api/auth/register' && request.method === 'POST') {
+      const body = (await request.json()) as {
+        name?: string;
+        email?: string;
+        password?: string;
+        redeemCode?: string;
+      };
+
+      const name = (body.name || '').trim();
+      const email = (body.email || '').trim().toLowerCase();
+      const password = (body.password || '').trim();
+      const redeemCode = (body.redeemCode || '').trim().toUpperCase();
+
+      if (!name || !email || password.length < 4) {
+        return jsonResponse({ error: 'Preencha nome, e-mail e senha (mínimo 4 caracteres).' }, 400);
+      }
+
+      // Verifica se e-mail já existe
+      const existingRes = await sbFetch(
+        env,
+        `trezzy_users?email=eq.${encodeURIComponent(email)}&select=id`
+      );
+      const existing = (await existingRes.json()) as { id: string }[];
+      if (existing.length > 0) {
+        return jsonResponse({ error: 'Este e-mail já possui uma conta cadastrada.' }, 409);
+      }
+
+      const password_hash = await hashPassword(password);
+
+      // Cria usuário (1 crédito grátis de boas-vindas se não informar chave)
+      const createRes = await sbFetch(env, 'trezzy_users', {
+        method: 'POST',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({
+          name,
+          email,
+          password_hash,
+          plan_name: 'Conta Gratuita (1 Teste)',
+          credits: 1,
+          is_vip: false,
+        }),
+      });
+
+      if (!createRes.ok) {
+        return jsonResponse({ error: 'Erro ao criar conta no banco de dados.' }, 500);
+      }
+
+      const createdUsers = (await createRes.json()) as any[];
+      const user = createdUsers[0];
+
+      // Se o usuário já colocou uma chave no cadastro, resgata automaticamente
+      if (redeemCode) {
+        await aplicarCodigoNaConta(env, user.id, redeemCode);
+      }
+
+      return jsonResponse({
+        token: user.id,
+        message: 'Conta criada com sucesso!',
+      });
+    }
+
+    // 3. Login (Usuário E-mail/Senha ou Admin)
     if (url.pathname === '/api/auth/login' && request.method === 'POST') {
-      const body = (await request.json()) as { password?: string; scope?: 'admin' | 'member' };
-      const inputPass = (body.password || '').trim();
+      const body = (await request.json()) as {
+        email?: string;
+        password?: string;
+        scope?: 'admin' | 'member';
+      };
+
+      const password = (body.password || '').trim();
       const adminPass = await getAdminPassword(env);
 
-      // Login exclusivo do Painel Admin
       if (body.scope === 'admin') {
-        if (inputPass && inputPass === adminPass) {
-          return jsonResponse({ role: 'admin', token: inputPass });
+        if (password && password === adminPass) {
+          return jsonResponse({ role: 'admin', token: password });
         }
         return jsonResponse({ error: 'Senha administrativa incorreta.' }, 401);
       }
 
-      // Login da Área de Membros (aceita Admin ou Chave do Supabase)
-      if (inputPass && inputPass === adminPass) {
-        return jsonResponse({
-          role: 'member',
-          isAdminPreview: true,
-          token: inputPass,
-          label: 'Administrador Trezzy',
-          planName: 'VIP Admin (Ilimitado)',
-          maxDownloads: null,
-          downloadsUsed: 0,
-        });
+      const email = (body.email || '').trim().toLowerCase();
+      if (!email || !password) {
+        return jsonResponse({ error: 'Informe seu e-mail e senha.' }, 400);
       }
 
-      if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
-        return jsonResponse({ error: 'Banco de dados Supabase não configurado.' }, 500);
-      }
-
+      const password_hash = await hashPassword(password);
       const res = await sbFetch(
         env,
-        `trezzy_tokens?code=eq.${encodeURIComponent(inputPass)}&select=*`
+        `trezzy_users?email=eq.${encodeURIComponent(email)}&password_hash=eq.${password_hash}&select=*`
       );
-      const rows = (await res.json()) as DbToken[];
-      const record = rows[0];
+      const users = (await res.json()) as any[];
 
-      if (!record || !record.active) {
-        return jsonResponse({ error: 'Chave de acesso inválida ou desativada.' }, 401);
-      }
-
-      if (record.max_downloads !== null && record.downloads_used >= record.max_downloads) {
-        return jsonResponse(
-          { error: `Cota de ${record.max_downloads} downloads atingida neste plano.` },
-          403
-        );
+      if (!users[0]) {
+        return jsonResponse({ error: 'E-mail ou senha incorretos.' }, 401);
       }
 
       return jsonResponse({
         role: 'member',
-        token: record.code,
-        label: record.label,
-        plan: record.plan,
-        planName: record.plan_name,
-        maxDownloads: record.max_downloads,
-        downloadsUsed: record.downloads_used,
+        token: users[0].id,
       });
     }
 
-    // 3. Dados Isolados do Próprio Cliente (Meus Downloads + Cota Atual)
+    // 4. Dados da Conta Logada (/api/me)
     if (url.pathname === '/api/me' && request.method === 'GET') {
-      const authHeader = request.headers.get('Authorization') || '';
-      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-      if (!token) return jsonResponse({ error: 'Não autenticado.' }, 401);
+      const userId = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+      if (!userId) return jsonResponse({ error: 'Não autenticado.' }, 401);
 
-      const adminPass = await getAdminPassword(env);
-      if (token === adminPass) {
-        return jsonResponse({
-          label: 'Administrador Trezzy',
-          planName: 'VIP Admin (Ilimitado)',
-          maxDownloads: null,
-          downloadsUsed: 0,
-          history: [],
-        });
-      }
-
-      const [tokRes, histRes] = await Promise.all([
-        sbFetch(env, `trezzy_tokens?code=eq.${encodeURIComponent(token)}&select=*`),
+      const [userRes, histRes] = await Promise.all([
+        sbFetch(env, `trezzy_users?id=eq.${encodeURIComponent(userId)}&select=*`),
         sbFetch(
           env,
-          `trezzy_downloads?token_code=eq.${encodeURIComponent(token)}&order=downloaded_at.desc&limit=50`
+          `trezzy_user_downloads?user_id=eq.${encodeURIComponent(userId)}&order=downloaded_at.desc&limit=50`
         ),
       ]);
 
-      const tokens = (await tokRes.json()) as DbToken[];
-      if (!tokens[0] || !tokens[0].active) {
-        return jsonResponse({ error: 'Sessão inválida.' }, 401);
-      }
+      const users = (await userRes.json()) as any[];
+      if (!users[0]) return jsonResponse({ error: 'Conta não encontrada.' }, 401);
 
+      const u = users[0];
       const history = await histRes.json();
+
       return jsonResponse({
-        label: tokens[0].label,
-        planName: tokens[0].plan_name,
-        maxDownloads: tokens[0].max_downloads,
-        downloadsUsed: tokens[0].downloads_used,
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        planName: u.plan_name,
+        isVip: u.is_vip,
+        credits: u.credits,
+        downloadsUsed: u.downloads_used,
         history,
       });
     }
 
-    // 4. Alterar Senha Administrativa (Apenas Admin)
-    if (url.pathname === '/api/auth/change-password' && request.method === 'POST') {
-      const authHeader = request.headers.get('Authorization') || '';
-      const currentToken = authHeader.replace(/^Bearer\s+/i, '').trim();
-      const adminPass = await getAdminPassword(env);
+    // 5. Resgatar Chave de Uso Único na Conta (/api/redeem)
+    if (url.pathname === '/api/redeem' && request.method === 'POST') {
+      const userId = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+      if (!userId) return jsonResponse({ error: 'Faça login primeiro.' }, 401);
 
-      if (currentToken !== adminPass) {
+      const body = (await request.json()) as { code?: string };
+      const code = (body.code || '').trim().toUpperCase();
+      if (!code) return jsonResponse({ error: 'Digite o código da chave.' }, 400);
+
+      const result = await aplicarCodigoNaConta(env, userId, code);
+      if (!result.ok) {
+        return jsonResponse({ error: result.error }, 400);
+      }
+      return jsonResponse({ success: true, message: result.message });
+    }
+
+    // 6. Alterar Senha do Próprio Usuário
+    if (url.pathname === '/api/user/change-password' && request.method === 'POST') {
+      const userId = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+      if (!userId) return jsonResponse({ error: 'Não autenticado.' }, 401);
+
+      const body = (await request.json()) as { newPassword?: string };
+      const newPassword = (body.newPassword || '').trim();
+      if (newPassword.length < 4) {
+        return jsonResponse({ error: 'A nova senha deve ter pelo menos 4 caracteres.' }, 400);
+      }
+
+      const password_hash = await hashPassword(newPassword);
+      await sbFetch(env, `trezzy_users?id=eq.${encodeURIComponent(userId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ password_hash }),
+      });
+
+      return jsonResponse({ success: true });
+    }
+
+    // 7. Painel Admin: Gerar / Listar Chaves + Listar Usuários
+    if (url.pathname === '/api/admin/overview') {
+      const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+      if (token !== (await getAdminPassword(env))) {
         return jsonResponse({ error: 'Acesso negado.' }, 403);
       }
 
-      const body = (await request.json()) as { newPassword?: string };
-      const newPass = (body.newPassword || '').trim();
-      if (newPass.length < 4) {
-        return jsonResponse({ error: 'Mínimo de 4 caracteres.' }, 400);
-      }
+      const [codesRes, usersRes] = await Promise.all([
+        sbFetch(env, 'trezzy_redeem_codes?order=created_at.desc'),
+        sbFetch(env, 'trezzy_users?select=id,name,email,plan_name,is_vip,credits,downloads_used,created_at&order=created_at.desc'),
+      ]);
 
-      if (!env.TREZZY_KV) {
-        return jsonResponse({ error: 'Binding TREZZY_KV ausente.' }, 500);
-      }
-
-      await env.TREZZY_KV.put('ADMIN_CUSTOM_PASSWORD', newPass);
-      return jsonResponse({ success: true, token: newPass });
+      return jsonResponse({
+        codes: await codesRes.json(),
+        users: await usersRes.json(),
+      });
     }
 
-    // 5. Gestão Administrativa de Chaves no Supabase (Apenas Admin)
-    if (url.pathname === '/api/admin/tokens') {
-      const authHeader = request.headers.get('Authorization') || '';
-      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-      const adminPass = await getAdminPassword(env);
-
-      if (token !== adminPass) {
-        return jsonResponse({ error: 'Acesso exclusivo do administrador.' }, 403);
-      }
-
-      if (request.method === 'GET') {
-        const res = await sbFetch(env, 'trezzy_tokens?order=created_at.desc');
-        const tokens = await res.json();
-        return jsonResponse({ tokens });
+    if (url.pathname === '/api/admin/codes') {
+      const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+      if (token !== (await getAdminPassword(env))) {
+        return jsonResponse({ error: 'Acesso negado.' }, 403);
       }
 
       if (request.method === 'POST') {
@@ -259,34 +303,27 @@ export default {
         const randomPart = crypto.randomUUID().split('-')[0].toUpperCase();
         const code = `${cfg.prefix}-${randomPart}`;
 
-        const payload = {
-          code,
-          label: (body.label || 'Cliente Trezzy 3D').trim(),
-          plan: planKey,
-          plan_name: cfg.name,
-          max_downloads: cfg.max,
-          downloads_used: 0,
-          active: true,
-        };
-
-        const res = await sbFetch(env, 'trezzy_tokens', {
+        const res = await sbFetch(env, 'trezzy_redeem_codes', {
           method: 'POST',
           headers: { Prefer: 'return=representation' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            code,
+            label: (body.label || 'Cliente').trim(),
+            plan: planKey,
+            plan_name: cfg.name,
+            credits_amount: cfg.credits,
+            is_vip: cfg.isVip,
+          }),
         });
 
-        if (!res.ok) {
-          return jsonResponse({ error: 'Falha ao salvar chave no Supabase.' }, 500);
-        }
-
-        const created = (await res.json()) as DbToken[];
-        return jsonResponse({ token: created[0] });
+        const rows = (await res.json()) as any[];
+        return jsonResponse({ code: rows[0] });
       }
 
       if (request.method === 'DELETE') {
         const code = url.searchParams.get('code');
         if (code) {
-          await sbFetch(env, `trezzy_tokens?code=eq.${encodeURIComponent(code)}`, {
+          await sbFetch(env, `trezzy_redeem_codes?code=eq.${encodeURIComponent(code)}`, {
             method: 'DELETE',
           });
         }
@@ -294,38 +331,23 @@ export default {
       }
     }
 
-    // 6. Download Protegido + Registro no Supabase
+    // 8. Download Protegido por Conta de Usuário
     if (url.pathname === '/api/download' && request.method === 'POST') {
       try {
-        const authHeader = request.headers.get('Authorization') || '';
-        const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-        if (!token) return jsonResponse({ error: 'Não autorizado.' }, 401);
+        const userId = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+        if (!userId) return jsonResponse({ error: 'Faça login para baixar.' }, 401);
 
-        const adminPass = await getAdminPassword(env);
-        const isAdmin = token === adminPass;
-        let memberRecord: DbToken | null = null;
+        const userRes = await sbFetch(env, `trezzy_users?id=eq.${encodeURIComponent(userId)}&select=*`);
+        const users = (await userRes.json()) as any[];
+        const user = users[0];
 
-        if (!isAdmin) {
-          const res = await sbFetch(
-            env,
-            `trezzy_tokens?code=eq.${encodeURIComponent(token)}&select=*`
+        if (!user) return jsonResponse({ error: 'Conta inválida.' }, 401);
+
+        if (!user.is_vip && user.credits <= 0) {
+          return jsonResponse(
+            { error: 'Seus créditos acabaram! Resgate uma nova chave na aba Meu Plano.' },
+            403
           );
-          const rows = (await res.json()) as DbToken[];
-          memberRecord = rows[0] || null;
-
-          if (!memberRecord || !memberRecord.active) {
-            return jsonResponse({ error: 'Chave inválida ou bloqueada.' }, 403);
-          }
-
-          if (
-            memberRecord.max_downloads !== null &&
-            memberRecord.downloads_used >= memberRecord.max_downloads
-          ) {
-            return jsonResponse(
-              { error: `Limite de ${memberRecord.max_downloads} downloads atingido.` },
-              403
-            );
-          }
         }
 
         const body = (await request.json()) as {
@@ -335,9 +357,7 @@ export default {
         };
 
         const rawPath = body.caminho_relativo || body.arquivo;
-        if (!rawPath || typeof rawPath !== 'string') {
-          return jsonResponse({ error: 'Arquivo inválido.' }, 400);
-        }
+        if (!rawPath) return jsonResponse({ error: 'Arquivo inválido.' }, 400);
 
         const safeFilename = rawPath.replace(/^(\.\.(\/|\\|$))+/, '').replace(/^\/+/, '');
         const onlyFilename = safeFilename.split('/').pop() || safeFilename;
@@ -366,16 +386,9 @@ export default {
         );
 
         let keyEncontrada: string | null = null;
-
         for (const candidato of candidatos) {
-          const encodedKey = candidato
-            .split('/')
-            .map((part) => encodeURIComponent(part))
-            .join('/');
-
-          const signedHead = await r2.sign(
-            new Request(`${baseBucketUrl}/${encodedKey}`, { method: 'HEAD' })
-          );
+          const encodedKey = candidato.split('/').map((p) => encodeURIComponent(p)).join('/');
+          const signedHead = await r2.sign(new Request(`${baseBucketUrl}/${encodedKey}`, { method: 'HEAD' }));
           if ((await fetch(signedHead)).ok) {
             keyEncontrada = encodedKey;
             break;
@@ -383,52 +396,30 @@ export default {
         }
 
         if (!keyEncontrada) {
-          const listUrl = new URL(baseBucketUrl);
-          listUrl.searchParams.set('list-type', '2');
-          listUrl.searchParams.set('max-keys', '1000');
-          const signedList = await r2.sign(new Request(listUrl.toString(), { method: 'GET' }));
-          const listRes = await fetch(signedList);
-
-          if (listRes.ok) {
-            const xml = await listRes.text();
-            const keyMatches = [...xml.matchAll(/<Key>(.*?)<\/Key>/g)].map((m) => m[1]);
-            const foundRawKey = keyMatches.find(
-              (k) => k === onlyFilename || k.endsWith(`/${onlyFilename}`)
-            );
-            if (foundRawKey) {
-              keyEncontrada = foundRawKey
-                .split('/')
-                .map((part) => encodeURIComponent(part))
-                .join('/');
-            }
-          }
-        }
-
-        if (!keyEncontrada) {
           return jsonResponse({ error: `Arquivo "${onlyFilename}" não encontrado no R2.` }, 404);
         }
 
-        // Atualiza cota e salva histórico isolado no Supabase
-        let newUsedCount = memberRecord ? memberRecord.downloads_used + 1 : 0;
-        if (memberRecord) {
-          await Promise.all([
-            sbFetch(env, `trezzy_tokens?code=eq.${encodeURIComponent(token)}`, {
-              method: 'PATCH',
-              body: JSON.stringify({
-                downloads_used: newUsedCount,
-                last_used_at: new Date().toISOString(),
-              }),
+        // Desconta 1 crédito (se não for VIP) e salva no histórico do usuário
+        const newCredits = user.is_vip ? user.credits : Math.max(0, user.credits - 1);
+        const newDownloadsUsed = (user.downloads_used || 0) + 1;
+
+        await Promise.all([
+          sbFetch(env, `trezzy_users?id=eq.${encodeURIComponent(userId)}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              credits: newCredits,
+              downloads_used: newDownloadsUsed,
             }),
-            sbFetch(env, 'trezzy_downloads', {
-              method: 'POST',
-              body: JSON.stringify({
-                token_code: token,
-                arquivo: onlyFilename,
-                topico: body.topico || 'Geral',
-              }),
+          }),
+          sbFetch(env, 'trezzy_user_downloads', {
+            method: 'POST',
+            body: JSON.stringify({
+              user_id: userId,
+              arquivo: onlyFilename,
+              topico: body.topico || 'Geral',
             }),
-          ]);
-        }
+          }),
+        ]);
 
         const endpoint = new URL(`${baseBucketUrl}/${keyEncontrada}`);
         endpoint.searchParams.set('X-Amz-Expires', '300');
@@ -442,20 +433,10 @@ export default {
           { aws: { signQuery: true } }
         );
 
-        return jsonResponse({
-          url: signedRequest.url,
-          expires_in: 300,
-          quota: memberRecord
-            ? {
-                planName: memberRecord.plan_name,
-                used: newUsedCount,
-                max: memberRecord.max_downloads,
-              }
-            : null,
-        });
+        return jsonResponse({ url: signedRequest.url });
       } catch (err) {
-        console.error('[R2_WORKER_ERROR]', err);
-        return jsonResponse({ error: 'Erro interno ao gerar download.' }, 500);
+        console.error('[DOWNLOAD_ERROR]', err);
+        return jsonResponse({ error: 'Erro ao processar download.' }, 500);
       }
     }
 
@@ -463,12 +444,56 @@ export default {
   },
 };
 
+async function aplicarCodigoNaConta(
+  env: Env,
+  userId: string,
+  code: string
+): Promise<{ ok: boolean; error?: string; message?: string }> {
+  const codeRes = await sbFetch(
+    env,
+    `trezzy_redeem_codes?code=eq.${encodeURIComponent(code)}&select=*`
+  );
+  const codes = (await codeRes.json()) as any[];
+  const record = codes[0];
+
+  if (!record) return { ok: false, error: 'Chave inválida ou inexistente.' };
+  if (record.redeemed_by) return { ok: false, error: 'Esta chave já foi utilizada.' };
+
+  const userRes = await sbFetch(env, `trezzy_users?id=eq.${encodeURIComponent(userId)}&select=*`);
+  const users = (await userRes.json()) as any[];
+  const user = users[0];
+  if (!user) return { ok: false, error: 'Usuário não encontrado.' };
+
+  const updatedCredits = (user.credits || 0) + (record.credits_amount || 0);
+  const updatedVip = Boolean(user.is_vip || record.is_vip);
+
+  await Promise.all([
+    sbFetch(env, `trezzy_redeem_codes?code=eq.${encodeURIComponent(code)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        redeemed_by: userId,
+        redeemed_at: new Date().toISOString(),
+      }),
+    }),
+    sbFetch(env, `trezzy_users?id=eq.${encodeURIComponent(userId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        plan_name: record.plan_name,
+        credits: updatedCredits,
+        is_vip: updatedVip,
+      }),
+    }),
+  ]);
+
+  return {
+    ok: true,
+    message: `Plano "${record.plan_name}" ativado com sucesso na sua conta!`,
+  };
+}
+
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      ...corsHeaders,
-    },
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...corsHeaders },
   });
 }
