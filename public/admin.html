@@ -3,115 +3,234 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TREZZY 3D | Admin Control</title>
+  <title>TREZZY 3D | Painel Administrativo</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #09090b; color: #f4f4f5; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
 </head>
-<body class="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
+<body class="min-h-screen bg-zinc-950 text-zinc-100">
 
   <!-- LOGIN ADMIN -->
-  <div id="admin-login" class="min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl p-7 shadow-2xl">
-      <h1 class="text-2xl font-black text-rose-600 text-center">TREZZY ADMIN</h1>
-      <p class="text-xs text-zinc-400 text-center mt-1 mb-6">Acesso Restrito ao Proprietário</p>
+  <div id="admin-login" class="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-rose-950/25 via-zinc-950 to-zinc-950">
+    <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl">
+      <div class="text-center mb-6">
+        <span class="text-2xl font-black tracking-wider text-rose-600">TREZZY 3D</span>
+        <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mt-1">Admin Control • Acesso Restrito</p>
+      </div>
+
       <form id="form-admin-login" class="space-y-4">
-        <input
-          id="admin-pass-input"
-          type="password"
-          required
-          placeholder="Senha Administrativa"
-          class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm px-4 py-3 rounded-xl"
-        />
-        <button type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm py-3 rounded-xl cursor-pointer">
+        <div>
+          <label class="block text-xs text-zinc-400 mb-1.5">Senha Mestra Administrativa</label>
+          <input
+            id="admin-pass-input"
+            type="password"
+            required
+            placeholder="Digite sua senha admin"
+            class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-3 rounded-xl"
+          />
+        </div>
+        <button type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm py-3 rounded-xl transition cursor-pointer">
           Entrar no Painel Admin
         </button>
       </form>
-      <p id="admin-err" class="text-xs text-red-400 text-center mt-3 hidden"></p>
+      <p id="admin-err" class="text-xs text-red-400 text-center mt-4 hidden"></p>
     </div>
   </div>
 
-  <!-- PAINEL ADMIN -->
-  <div id="admin-panel" class="hidden max-w-6xl mx-auto p-4 md:p-8 space-y-6">
-    <header class="flex items-center justify-between border-b border-zinc-800 pb-4">
+  <!-- DASHBOARD ADMIN -->
+  <div id="admin-shell" class="hidden min-h-screen flex flex-col md:flex-row">
+
+    <!-- Sidebar Esquerda -->
+    <aside class="w-full md:w-64 bg-zinc-900 border-b md:border-b-0 md:border-r border-zinc-800 flex flex-col justify-between shrink-0">
       <div>
-        <span class="text-xl font-black text-rose-600">TREZZY 3D • ADMIN</span>
-        <p class="text-xs text-zinc-400">Banco de Dados Conectado: Supabase</p>
-      </div>
-      <div class="flex gap-2">
-        <a href="/dashboard.html" class="bg-zinc-800 hover:bg-zinc-700 text-xs font-bold px-3.5 py-2 rounded-xl">Ver como Cliente</a>
-        <button onclick="adminLogout()" class="bg-red-950 text-red-300 text-xs font-bold px-3.5 py-2 rounded-xl cursor-pointer">Sair</button>
-      </div>
-    </header>
+        <div class="p-5 border-b border-zinc-800 flex items-center justify-between">
+          <div>
+            <span class="text-xl font-black tracking-wider text-rose-600">TREZZY ADMIN</span>
+            <span class="block text-[10px] font-bold uppercase text-emerald-400 mt-0.5">Supabase Conectado</span>
+          </div>
+          <button onclick="adminLogout()" class="md:hidden text-xs bg-zinc-800 px-3 py-1.5 rounded-lg">Sair</button>
+        </div>
 
-    <!-- Métricas -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-        <span class="text-xs text-zinc-400">Total de Chaves Emitidas</span>
-        <p id="kpi-total" class="text-3xl font-black text-white mt-1">0</p>
+        <nav class="p-3 flex md:flex-col gap-1 overflow-x-auto">
+          <button onclick="mudarAbaAdmin('chaves')" id="nav-chaves" class="nav-adm flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold bg-rose-600/15 text-rose-400 border border-rose-600/30 cursor-pointer whitespace-nowrap">
+            <span>🎟️</span> <span>Chaves de Ativação</span>
+          </button>
+          <button onclick="mudarAbaAdmin('usuarios')" id="nav-usuarios" class="nav-adm flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-zinc-400 hover:bg-zinc-800 hover:text-white cursor-pointer whitespace-nowrap">
+            <span>👥</span> <span>Contas Criadas</span>
+          </button>
+          <button onclick="mudarAbaAdmin('seguranca')" id="nav-seguranca" class="nav-adm flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-zinc-400 hover:bg-zinc-800 hover:text-white cursor-pointer whitespace-nowrap">
+            <span>⚙️</span> <span>Alterar Senha Admin</span>
+          </button>
+        </nav>
       </div>
-      <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-        <span class="text-xs text-zinc-400">Chaves VIP Ativas</span>
-        <p id="kpi-vip" class="text-3xl font-black text-amber-400 mt-1">0</p>
-      </div>
-      <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-        <span class="text-xs text-zinc-400">Total de Downloads Realizados</span>
-        <p id="kpi-dl" class="text-3xl font-black text-emerald-400 mt-1">0</p>
-      </div>
-    </div>
 
-    <!-- Gerar Nova Chave -->
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-      <h2 class="text-base font-bold text-white mb-4">Gerar Nova Chave de Cliente</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <input id="cli-nome" type="text" placeholder="Nome / WhatsApp do Cliente" class="bg-zinc-950 border border-zinc-800 text-sm px-4 py-2.5 rounded-xl" />
-        <select id="cli-plano" class="bg-zinc-950 border border-zinc-800 text-sm px-4 py-2.5 rounded-xl">
-          <option value="teste">🧪 Teste — 10 Downloads</option>
-          <option value="premium">⭐ Premium — 50 Downloads</option>
-          <option value="vip">👑 VIP — ALL Downloads + Updates</option>
-        </select>
-        <button onclick="criarChave()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm py-2.5 rounded-xl cursor-pointer">
-          + Gerar & Copiar Chave
+      <div class="hidden md:block p-4 border-t border-zinc-800 space-y-2.5">
+        <a href="/dashboard.html" class="block text-center w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold py-2.5 rounded-xl transition">
+          🧊 Ver Área do Cliente
+        </a>
+        <button onclick="adminLogout()" class="w-full bg-red-950/80 hover:bg-red-900 text-red-200 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
+          🚪 Sair do Admin
         </button>
       </div>
-    </div>
+    </aside>
 
-    <!-- Tabela de Clientes -->
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-      <div class="p-5 border-b border-zinc-800 flex justify-between items-center">
-        <h3 class="text-sm font-bold">Clientes Cadastrados no Supabase</h3>
-        <button onclick="carregarChaves()" class="text-xs text-zinc-400 hover:text-white cursor-pointer">Atualizar</button>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-zinc-950 text-zinc-400 uppercase">
-            <tr>
-              <th class="px-4 py-3">Chave</th>
-              <th class="px-4 py-3">Cliente</th>
-              <th class="px-4 py-3">Plano</th>
-              <th class="px-4 py-3">Consumo</th>
-              <th class="px-4 py-3 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="lista-chaves" class="divide-y divide-zinc-800"></tbody>
-        </table>
-      </div>
-    </div>
+    <!-- Conteúdo Principal -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <header class="bg-zinc-950 border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+        <h1 id="adm-title" class="text-lg font-bold text-white">Gerenciador de Chaves de Ativação</h1>
+        <button onclick="carregarDadosAdmin()" class="text-xs bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-3 py-1.5 rounded-lg text-zinc-300 cursor-pointer">
+          ↻ Atualizar Dados
+        </button>
+      </header>
 
-    <!-- Alterar Senha Admin -->
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md space-y-3">
-      <h3 class="text-sm font-bold">Alterar Senha Mestra</h3>
-      <input id="nova-senha-admin" type="password" placeholder="Nova senha (mín. 4 dígitos)" class="w-full bg-zinc-950 border border-zinc-800 text-sm px-4 py-2.5 rounded-xl" />
-      <button onclick="trocarSenha()" class="bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer">
-        Salvar Nova Senha
-      </button>
+      <main class="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+
+        <!-- KPIs Globais -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+            <span class="text-xs text-zinc-400">Contas Cadastradas</span>
+            <p id="kpi-users" class="text-3xl font-black text-white mt-1">0</p>
+          </div>
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+            <span class="text-xs text-zinc-400">Chaves Disponíveis (Não Usadas)</span>
+            <p id="kpi-codes-open" class="text-3xl font-black text-emerald-400 mt-1">0</p>
+          </div>
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+            <span class="text-xs text-zinc-400">Chaves Resgatadas (Vendas)</span>
+            <p id="kpi-codes-used" class="text-3xl font-black text-rose-500 mt-1">0</p>
+          </div>
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+            <span class="text-xs text-zinc-400">Total de Downloads Feitos</span>
+            <p id="kpi-downloads" class="text-3xl font-black text-amber-400 mt-1">0</p>
+          </div>
+        </div>
+
+        <!-- ABA 1: GERADOR & LISTA DE CHAVES DE RESGATE -->
+        <section id="sec-chaves" class="space-y-6">
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+            <h2 class="text-base font-bold text-white mb-1">Gerar Chave de Recarga / Plano</h2>
+            <p class="text-xs text-zinc-400 mb-4">
+              O cliente cria a conta dele em <code class="text-zinc-300">/dashboard.html</code> e cola esta chave para liberar os créditos. Assim que resgatada, a chave é invalidada automaticamente.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <input
+                id="cli-nome"
+                type="text"
+                placeholder="Identificação (ex: João Silva - Pix)"
+                class="bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+              />
+              <select
+                id="cli-plano"
+                class="bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+              >
+                <option value="teste">🧪 Teste — +10 Downloads</option>
+                <option value="premium">⭐ Premium — +50 Downloads</option>
+                <option value="vip">👑 VIP — ALL Downloads + Updates</option>
+              </select>
+              <button
+                onclick="gerarChave()"
+                class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm py-2.5 rounded-xl transition cursor-pointer"
+              >
+                + Gerar & Copiar Chave
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+            <div class="p-5 border-b border-zinc-800">
+              <h3 class="text-sm font-bold text-white">Histórico de Chaves Emitidas</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-zinc-950 text-zinc-400 uppercase">
+                  <tr>
+                    <th class="px-4 py-3">Chave</th>
+                    <th class="px-4 py-3">Referência / Cliente</th>
+                    <th class="px-4 py-3">Pacote</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tabela-chaves" class="divide-y divide-zinc-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ABA 2: CONTAS DE USUÁRIOS CADASTRADOS -->
+        <section id="sec-usuarios" class="hidden">
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+            <div class="p-5 border-b border-zinc-800">
+              <h3 class="text-sm font-bold text-white">Usuários Registrados na Plataforma</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-zinc-950 text-zinc-400 uppercase">
+                  <tr>
+                    <th class="px-4 py-3">Nome</th>
+                    <th class="px-4 py-3">E-mail</th>
+                    <th class="px-4 py-3">Plano Atual</th>
+                    <th class="px-4 py-3">Saldo / VIP</th>
+                    <th class="px-4 py-3">Baixados</th>
+                    <th class="px-4 py-3">Cadastro</th>
+                  </tr>
+                </thead>
+                <tbody id="tabela-usuarios" class="divide-y divide-zinc-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ABA 3: ALTERAR SENHA ADMIN -->
+        <section id="sec-seguranca" class="hidden max-w-md">
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+            <h2 class="text-base font-bold text-white">Alterar Senha Mestra</h2>
+            <p class="text-xs text-zinc-400">
+              Atualiza a senha usada para acessar este painel administrativo.
+            </p>
+            <input
+              id="nova-senha-admin"
+              type="password"
+              placeholder="Nova senha (mínimo 4 caracteres)"
+              class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+            />
+            <button
+              onclick="trocarSenhaAdmin()"
+              class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition cursor-pointer"
+            >
+              Salvar Nova Senha
+            </button>
+          </div>
+        </section>
+
+      </main>
     </div>
   </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden px-4 py-3 rounded-xl text-sm font-medium shadow-xl border"></div>
 
   <script>
     let adminToken = localStorage.getItem('trezzy_admin_token') || '';
 
+    function toast(msg, err = false) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = `fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl text-sm font-medium shadow-xl border ${
+        err ? 'bg-red-950 border-red-700 text-red-100' : 'bg-emerald-950 border-emerald-700 text-emerald-100'
+      }`;
+      el.classList.remove('hidden');
+      clearTimeout(window.__t);
+      window.__t = setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
     document.getElementById('form-admin-login').addEventListener('submit', async (e) => {
       e.preventDefault();
       const password = document.getElementById('admin-pass-input').value.trim();
+      const errEl = document.getElementById('admin-err');
+      errEl.classList.add('hidden');
+
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -119,11 +238,11 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        const err = document.getElementById('admin-err');
-        err.textContent = data.error || 'Acesso negado.';
-        err.classList.remove('hidden');
+        errEl.textContent = data.error || 'Senha incorreta.';
+        errEl.classList.remove('hidden');
         return;
       }
+
       adminToken = data.token;
       localStorage.setItem('trezzy_admin_token', adminToken);
       iniciarAdmin();
@@ -132,86 +251,166 @@
     function adminLogout() {
       localStorage.removeItem('trezzy_admin_token');
       adminToken = '';
-      document.getElementById('admin-panel').classList.add('hidden');
+      document.getElementById('admin-shell').classList.add('hidden');
       document.getElementById('admin-login').classList.remove('hidden');
+      document.getElementById('admin-pass-input').value = '';
     }
 
-    async function carregarChaves() {
-      const res = await fetch('/api/admin/tokens', {
+    function mudarAbaAdmin(aba) {
+      ['chaves', 'usuarios', 'seguranca'].forEach((id) => {
+        document.getElementById(`sec-${id}`).classList.add('hidden');
+        document.getElementById(`nav-${id}`).className =
+          'nav-adm flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-zinc-400 hover:bg-zinc-800 hover:text-white cursor-pointer whitespace-nowrap';
+      });
+      document.getElementById(`sec-${aba}`).classList.remove('hidden');
+      document.getElementById(`nav-${aba}`).className =
+        'nav-adm flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold bg-rose-600/15 text-rose-400 border border-rose-600/30 cursor-pointer whitespace-nowrap';
+
+      const titulos = {
+        chaves: 'Gerenciador de Chaves de Ativação',
+        usuarios: 'Contas Cadastradas no Sistema',
+        seguranca: 'Configurações de Segurança',
+      };
+      document.getElementById('adm-title').textContent = titulos[aba];
+    }
+
+    async function carregarDadosAdmin() {
+      const res = await fetch('/api/admin/overview', {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       if (!res.ok) {
         adminLogout();
         return;
       }
-      const { tokens } = await res.json();
-      document.getElementById('kpi-total').textContent = tokens.length;
-      document.getElementById('kpi-vip').textContent = tokens.filter((t) => t.plan === 'vip').length;
-      document.getElementById('kpi-dl').textContent = tokens.reduce((a, b) => a + (b.downloads_used || 0), 0);
 
-      const tbody = document.getElementById('lista-chaves');
-      tbody.innerHTML = '';
-      tokens.forEach((t) => {
-        const uso = t.max_downloads === null ? `${t.downloads_used} (VIP)` : `${t.downloads_used} / ${t.max_downloads}`;
+      const { codes = [], users = [] } = await res.json();
+
+      const disponiveis = codes.filter((c) => !c.redeemed_by);
+      const resgatadas = codes.filter((c) => Boolean(c.redeemed_by));
+      const totalDownloads = users.reduce((acc, u) => acc + (u.downloads_used || 0), 0);
+
+      document.getElementById('kpi-users').textContent = users.length;
+      document.getElementById('kpi-codes-open').textContent = disponiveis.length;
+      document.getElementById('kpi-codes-used').textContent = resgatadas.length;
+      document.getElementById('kpi-downloads').textContent = totalDownloads;
+
+      // Renderiza Tabela de Chaves
+      const tbodyChaves = document.getElementById('tabela-chaves');
+      tbodyChaves.innerHTML = '';
+
+      const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
+
+      codes.forEach((c) => {
+        const resgatadoPor = c.redeemed_by ? userMap[c.redeemed_by] : null;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="px-4 py-3 font-mono font-bold text-white">${t.code}</td>
-          <td class="px-4 py-3 text-zinc-300">${t.label}</td>
-          <td class="px-4 py-3 text-zinc-300">${t.plan_name}</td>
-          <td class="px-4 py-3 text-emerald-400 font-semibold">${uso}</td>
+          <td class="px-4 py-3 font-mono font-bold text-white">${c.code}</td>
+          <td class="px-4 py-3 text-zinc-300">${c.label}</td>
+          <td class="px-4 py-3">
+            <span class="bg-zinc-800 border border-zinc-700 text-zinc-200 px-2 py-0.5 rounded text-[10px] font-semibold">
+              ${c.plan_name}
+            </span>
+          </td>
+          <td class="px-4 py-3">
+            ${
+              c.redeemed_by
+                ? `<span class="text-zinc-400">Resgatada por <strong class="text-white">${resgatadoPor ? resgatadoPor.email : 'Usuário'}</strong></span>`
+                : `<span class="text-emerald-400 font-bold">DISPONÍVEL</span>`
+            }
+          </td>
           <td class="px-4 py-3 text-right space-x-2">
-            <button onclick="navigator.clipboard.writeText('${t.code}'); alert('Chave copiada: ${t.code}')" class="bg-zinc-800 px-2.5 py-1 rounded cursor-pointer">Copiar</button>
-            <button onclick="removerChave('${t.code}')" class="bg-red-950 text-red-300 px-2.5 py-1 rounded cursor-pointer">Excluir</button>
+            ${
+              !c.redeemed_by
+                ? `<button onclick="copiarChave('${c.code}')" class="bg-zinc-800 hover:bg-zinc-700 text-white px-2.5 py-1 rounded cursor-pointer">Copiar</button>`
+                : ''
+            }
+            <button onclick="excluirChave('${c.code}')" class="bg-red-950/80 hover:bg-red-900 text-red-300 px-2.5 py-1 rounded cursor-pointer">Excluir</button>
           </td>
         `;
-        tbody.appendChild(tr);
+        tbodyChaves.appendChild(tr);
+      });
+
+      // Renderiza Tabela de Usuários
+      const tbodyUsers = document.getElementById('tabela-usuarios');
+      tbodyUsers.innerHTML = '';
+      users.forEach((u) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-bold text-white">${u.name}</td>
+          <td class="px-4 py-3 text-zinc-300">${u.email}</td>
+          <td class="px-4 py-3 text-zinc-300">${u.plan_name}</td>
+          <td class="px-4 py-3 font-bold ${u.is_vip ? 'text-amber-400' : 'text-emerald-400'}">
+            ${u.is_vip ? '👑 VIP Ilimitado' : `${u.credits} créditos`}
+          </td>
+          <td class="px-4 py-3 text-zinc-300">${u.downloads_used || 0}</td>
+          <td class="px-4 py-3 text-zinc-500">${new Date(u.created_at).toLocaleDateString('pt-BR')}</td>
+        `;
+        tbodyUsers.appendChild(tr);
       });
     }
 
-    async function criarChave() {
-      const label = document.getElementById('cli-nome').value.trim() || 'Cliente';
+    async function gerarChave() {
+      const label = document.getElementById('cli-nome').value.trim() || 'Cliente Trezzy 3D';
       const plan = document.getElementById('cli-plano').value;
-      const res = await fetch('/api/admin/tokens', {
+
+      const res = await fetch('/api/admin/codes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({ label, plan }),
       });
       const data = await res.json();
-      if (res.ok && data.token) {
-        navigator.clipboard.writeText(data.token.code);
-        alert(`Chave criada e copiada: ${data.token.code}`);
-        document.getElementById('cli-nome').value = '';
-        carregarChaves();
+      if (!res.ok || !data.code) {
+        toast(data.error || 'Erro ao gerar chave.', true);
+        return;
       }
+
+      document.getElementById('cli-nome').value = '';
+      copiarChave(data.code.code);
+      carregarDadosAdmin();
     }
 
-    async function removerChave(code) {
-      await fetch(`/api/admin/tokens?code=${encodeURIComponent(code)}`, {
+    function copiarChave(code) {
+      navigator.clipboard.writeText(code);
+      toast(`Chave ${code} copiada para enviar ao cliente!`);
+    }
+
+    async function excluirChave(code) {
+      await fetch(`/api/admin/codes?code=${encodeURIComponent(code)}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${adminToken}` },
       });
-      carregarChaves();
+      toast('Chave removida.');
+      carregarDadosAdmin();
     }
 
-    async function trocarSenha() {
+    async function trocarSenhaAdmin() {
       const newPassword = document.getElementById('nova-senha-admin').value.trim();
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({ newPassword }),
       });
       const data = await res.json();
-      if (res.ok) {
-        adminToken = data.token;
-        localStorage.setItem('trezzy_admin_token', adminToken);
-        alert('Senha alterada com sucesso!');
+      if (!res.ok) {
+        toast(data.error || 'Erro ao atualizar senha.', true);
+        return;
       }
+      adminToken = data.token;
+      localStorage.setItem('trezzy_admin_token', adminToken);
+      document.getElementById('nova-senha-admin').value = '';
+      toast('Senha mestra atualizada com sucesso!');
     }
 
     function iniciarAdmin() {
       document.getElementById('admin-login').classList.add('hidden');
-      document.getElementById('admin-panel').classList.remove('hidden');
-      carregarChaves();
+      document.getElementById('admin-shell').classList.remove('hidden');
+      carregarDadosAdmin();
     }
 
     if (adminToken) iniciarAdmin();
