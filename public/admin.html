@@ -3,153 +3,217 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TREZZY 3D | Painel Administrativo</title>
+  <title>TREZZY 3D | Command Center Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background-color: #09090b; color: #f4f4f5; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      background-color: #09090b;
+      color: #f4f4f5;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .glass {
+      background: rgba(24, 24, 27, 0.82);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
   </style>
 </head>
-<body class="min-h-screen bg-zinc-950 text-zinc-100">
+<body class="min-h-screen bg-zinc-950 text-zinc-100 antialiased selection:bg-rose-600 selection:text-white">
 
-  <!-- LOGIN ADMIN -->
-  <div id="admin-login" class="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-rose-950/25 via-zinc-950 to-zinc-950">
-    <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl">
-      <div class="text-center mb-6">
-        <span class="text-2xl font-black tracking-wider text-rose-600">TREZZY 3D</span>
-        <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mt-1">Admin Control • Acesso Restrito</p>
+  <!-- TELA DE LOGIN ADMIN BLINDADA -->
+  <div id="admin-login" class="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-rose-950/30 via-zinc-950 to-zinc-950">
+    <div class="w-full max-w-md bg-zinc-900/95 border border-zinc-800 rounded-3xl p-8 shadow-2xl">
+      <div class="text-center mb-7">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-rose-600/15 border border-rose-600/30 text-rose-500 text-xl mb-3">
+          🛡️
+        </div>
+        <h1 class="text-2xl font-black tracking-tight text-white">
+          TREZZY <span class="text-rose-600">ADMIN</span>
+        </h1>
+        <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400 mt-1">
+          Acesso Restrito • Proteção Anti-Brute-Force
+        </p>
       </div>
 
       <form id="form-admin-login" class="space-y-4">
         <div>
-          <label class="block text-xs text-zinc-400 mb-1.5">Senha Mestra Administrativa</label>
+          <label class="block text-xs font-medium text-zinc-400 mb-1.5">Senha Mestra Administrativa</label>
           <input
             id="admin-pass-input"
             type="password"
             required
-            placeholder="Digite sua senha admin"
-            class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-3 rounded-xl"
+            autocomplete="current-password"
+            placeholder="••••••••••••••••"
+            class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-3.5 rounded-xl transition"
           />
         </div>
-        <button type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm py-3 rounded-xl transition cursor-pointer">
-          Entrar no Painel Admin
+        <button type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-sm py-3.5 rounded-xl shadow-lg shadow-rose-600/20 transition cursor-pointer">
+          Desbloquear Painel →
         </button>
       </form>
-      <p id="admin-err" class="text-xs text-red-400 text-center mt-4 hidden"></p>
+
+      <div id="admin-err" class="hidden mt-4 bg-red-950/80 border border-red-800/80 text-red-200 text-xs text-center p-3 rounded-xl"></div>
+
+      <div class="mt-6 pt-4 border-t border-zinc-800/80 text-center">
+        <a href="/dashboard.html" class="text-xs text-zinc-500 hover:text-zinc-300 transition">
+          ← Ir para Área de Membros
+        </a>
+      </div>
     </div>
   </div>
 
-  <!-- DASHBOARD ADMIN -->
-  <div id="admin-shell" class="hidden min-h-screen flex flex-col md:flex-row">
+  <!-- COMMAND CENTER ADMIN -->
+  <div id="admin-shell" class="hidden min-h-screen flex flex-col lg:flex-row pb-20 lg:pb-0">
 
-    <!-- Sidebar Esquerda -->
-    <aside class="w-full md:w-64 bg-zinc-900 border-b md:border-b-0 md:border-r border-zinc-800 flex flex-col justify-between shrink-0">
+    <!-- SIDEBAR DESKTOP -->
+    <aside class="hidden lg:flex lg:w-72 bg-zinc-900/90 border-r border-zinc-800/80 flex-col justify-between shrink-0 sticky top-0 h-screen">
       <div>
-        <div class="p-5 border-b border-zinc-800 flex items-center justify-between">
-          <div>
-            <span class="text-xl font-black tracking-wider text-rose-600">TREZZY ADMIN</span>
-            <span class="block text-[10px] font-bold uppercase text-emerald-400 mt-0.5">Supabase Conectado</span>
+        <div class="p-6 border-b border-zinc-800/80">
+          <div class="flex items-center gap-2 text-2xl font-black tracking-tight text-white">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
+            <span>TREZZY <span class="text-rose-600">ADMIN</span></span>
           </div>
-          <button onclick="adminLogout()" class="md:hidden text-xs bg-zinc-800 px-3 py-1.5 rounded-lg">Sair</button>
+          <div class="mt-3 inline-flex items-center gap-1.5 bg-emerald-950/70 border border-emerald-800/60 px-2.5 py-1 rounded-lg">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-[11px] font-bold text-emerald-300">Supabase + R2 Online</span>
+          </div>
         </div>
 
-        <nav class="p-3 flex md:flex-col gap-1 overflow-x-auto">
-          <button onclick="mudarAbaAdmin('chaves')" id="nav-chaves" class="nav-adm flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold bg-rose-600/15 text-rose-400 border border-rose-600/30 cursor-pointer whitespace-nowrap">
-            <span>🎟️</span> <span>Chaves de Ativação</span>
+        <nav class="p-4 space-y-1.5">
+          <button onclick="mudarAbaAdmin('chaves')" id="desk-adm-chaves" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold bg-rose-600 text-white shadow-md shadow-rose-600/20 cursor-pointer transition">
+            <span>🎟️</span> <span>Chaves & Planos</span>
           </button>
-          <button onclick="mudarAbaAdmin('usuarios')" id="nav-usuarios" class="nav-adm flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-zinc-400 hover:bg-zinc-800 hover:text-white cursor-pointer whitespace-nowrap">
-            <span>👥</span> <span>Contas Criadas</span>
+          <button onclick="mudarAbaAdmin('usuarios')" id="desk-adm-usuarios" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-zinc-400 hover:bg-zinc-800/70 hover:text-white cursor-pointer transition">
+            <span>👥</span> <span>Clientes Cadastrados</span>
           </button>
-          <button onclick="mudarAbaAdmin('seguranca')" id="nav-seguranca" class="nav-adm flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-zinc-400 hover:bg-zinc-800 hover:text-white cursor-pointer whitespace-nowrap">
-            <span>⚙️</span> <span>Alterar Senha Admin</span>
+          <button onclick="mudarAbaAdmin('seguranca')" id="desk-adm-seguranca" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-zinc-400 hover:bg-zinc-800/70 hover:text-white cursor-pointer transition">
+            <span>🛡️</span> <span>Segurança & Senha</span>
           </button>
         </nav>
       </div>
 
-      <div class="hidden md:block p-4 border-t border-zinc-800 space-y-2.5">
+      <div class="p-4 border-t border-zinc-800/80 space-y-2.5">
         <a href="/dashboard.html" class="block text-center w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold py-2.5 rounded-xl transition">
-          🧊 Ver Área do Cliente
+          🧊 Abrir Área do Cliente
         </a>
-        <button onclick="adminLogout()" class="w-full bg-red-950/80 hover:bg-red-900 text-red-200 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
-          🚪 Sair do Admin
+        <button onclick="adminLogout()" class="w-full bg-red-950/70 hover:bg-red-900 text-red-200 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
+          Bloquear & Sair
         </button>
       </div>
     </aside>
 
-    <!-- Conteúdo Principal -->
+    <!-- ÁREA PRINCIPAL -->
     <div class="flex-1 flex flex-col min-w-0">
-      <header class="bg-zinc-950 border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
-        <h1 id="adm-title" class="text-lg font-bold text-white">Gerenciador de Chaves de Ativação</h1>
-        <button onclick="carregarDadosAdmin()" class="text-xs bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-3 py-1.5 rounded-lg text-zinc-300 cursor-pointer">
-          ↻ Atualizar Dados
-        </button>
+
+      <!-- TOP HEADER STICKY -->
+      <header class="sticky top-0 z-30 glass border-b border-zinc-800/80 px-4 sm:px-8 py-4 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="lg:hidden text-lg font-black text-white">TREZZY <span class="text-rose-600">ADMIN</span></span>
+          <h1 id="adm-title" class="hidden lg:block text-lg font-bold text-white">Gerenciador de Chaves & Planos</h1>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="carregarDadosAdmin()" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-xs font-bold px-3.5 py-2 rounded-xl transition cursor-pointer">
+            ↻ Atualizar
+          </button>
+          <button onclick="adminLogout()" class="lg:hidden bg-red-950/80 text-red-200 text-xs font-bold px-3 py-2 rounded-xl cursor-pointer">
+            Sair
+          </button>
+        </div>
       </header>
 
-      <main class="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+      <main class="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-8">
 
-        <!-- KPIs Globais -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-            <span class="text-xs text-zinc-400">Contas Cadastradas</span>
-            <p id="kpi-users" class="text-3xl font-black text-white mt-1">0</p>
+        <!-- CARDS DE MÉTRICAS (KPIs) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-2xl p-5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-zinc-400">Clientes Ativos</span>
+              <span class="text-base">👥</span>
+            </div>
+            <p id="kpi-users" class="text-3xl font-black text-white mt-2">0</p>
           </div>
-          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-            <span class="text-xs text-zinc-400">Chaves Disponíveis (Não Usadas)</span>
-            <p id="kpi-codes-open" class="text-3xl font-black text-emerald-400 mt-1">0</p>
+
+          <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-2xl p-5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-zinc-400">Chaves Disponíveis</span>
+              <span class="text-base">🎟️</span>
+            </div>
+            <p id="kpi-codes-open" class="text-3xl font-black text-emerald-400 mt-2">0</p>
           </div>
-          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-            <span class="text-xs text-zinc-400">Chaves Resgatadas (Vendas)</span>
-            <p id="kpi-codes-used" class="text-3xl font-black text-rose-500 mt-1">0</p>
+
+          <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-2xl p-5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-zinc-400">Planos Ativados</span>
+              <span class="text-base">💰</span>
+            </div>
+            <p id="kpi-codes-used" class="text-3xl font-black text-rose-500 mt-2">0</p>
           </div>
-          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-            <span class="text-xs text-zinc-400">Total de Downloads Feitos</span>
-            <p id="kpi-downloads" class="text-3xl font-black text-amber-400 mt-1">0</p>
+
+          <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-2xl p-5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-zinc-400">Downloads Totais</span>
+              <span class="text-base">⬇️</span>
+            </div>
+            <p id="kpi-downloads" class="text-3xl font-black text-amber-400 mt-2">0</p>
           </div>
         </div>
 
-        <!-- ABA 1: GERADOR & LISTA DE CHAVES DE RESGATE -->
+        <!-- ABA 1: CHAVES DE ATIVAÇÃO -->
         <section id="sec-chaves" class="space-y-6">
-          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-            <h2 class="text-base font-bold text-white mb-1">Gerar Chave de Recarga / Plano</h2>
-            <p class="text-xs text-zinc-400 mb-4">
-              O cliente cria a conta dele em <code class="text-zinc-300">/dashboard.html</code> e cola esta chave para liberar os créditos. Assim que resgatada, a chave é invalidada automaticamente.
-            </p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <input
-                id="cli-nome"
-                type="text"
-                placeholder="Identificação (ex: João Silva - Pix)"
-                class="bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
-              />
-              <select
-                id="cli-plano"
-                class="bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
-              >
-                <option value="teste">🧪 Teste — +10 Downloads</option>
-                <option value="premium">⭐ Premium — +50 Downloads</option>
-                <option value="vip">👑 VIP — ALL Downloads + Updates</option>
-              </select>
-              <button
-                onclick="gerarChave()"
-                class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm py-2.5 rounded-xl transition cursor-pointer"
-              >
-                + Gerar & Copiar Chave
-              </button>
+          <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-3xl p-6 sm:p-7">
+            <div class="mb-5">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-rose-400">Emissão Instantânea</span>
+              <h2 class="text-lg font-black text-white mt-0.5">Gerar Nova Chave de Recarga</h2>
+              <p class="text-xs text-zinc-400 mt-1">
+                Envie a chave gerada para o cliente. Assim que ele resgatar na conta dele, o código é invalidado automaticamente.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+              <div class="md:col-span-5">
+                <input
+                  id="cli-nome"
+                  type="text"
+                  placeholder="Nome / WhatsApp do cliente (ex: Marcos - Pix)"
+                  class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-3 rounded-xl"
+                />
+              </div>
+              <div class="md:col-span-4">
+                <select
+                  id="cli-plano"
+                  class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-3 rounded-xl"
+                >
+                  <option value="teste">🧪 Teste — +10 Downloads</option>
+                  <option value="premium">⭐ Premium — +50 Downloads</option>
+                  <option value="vip">👑 VIP — ALL Downloads + Updates</option>
+                </select>
+              </div>
+              <div class="md:col-span-3">
+                <button
+                  onclick="gerarChave()"
+                  class="w-full bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-sm py-3 rounded-xl shadow-lg shadow-rose-600/20 transition cursor-pointer"
+                >
+                  + Gerar & Copiar
+                </button>
+              </div>
             </div>
           </div>
 
-          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-            <div class="p-5 border-b border-zinc-800">
-              <h3 class="text-sm font-bold text-white">Histórico de Chaves Emitidas</h3>
+          <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-3xl overflow-hidden">
+            <div class="p-5 sm:p-6 border-b border-zinc-800 flex items-center justify-between">
+              <h3 class="text-base font-bold text-white">Chaves Emitidas</h3>
+              <span id="badge-qtd-chaves" class="text-xs text-zinc-400">0 registros</span>
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs">
                 <thead class="bg-zinc-950 text-zinc-400 uppercase">
                   <tr>
-                    <th class="px-4 py-3">Chave</th>
-                    <th class="px-4 py-3">Referência / Cliente</th>
-                    <th class="px-4 py-3">Pacote</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3 text-right">Ações</th>
+                    <th class="px-5 py-3.5">Chave</th>
+                    <th class="px-5 py-3.5">Cliente / Ref.</th>
+                    <th class="px-5 py-3.5">Pacote</th>
+                    <th class="px-5 py-3.5">Status</th>
+                    <th class="px-5 py-3.5 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody id="tabela-chaves" class="divide-y divide-zinc-800"></tbody>
@@ -158,22 +222,32 @@
           </div>
         </section>
 
-        <!-- ABA 2: CONTAS DE USUÁRIOS CADASTRADOS -->
-        <section id="sec-usuarios" class="hidden">
-          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-            <div class="p-5 border-b border-zinc-800">
-              <h3 class="text-sm font-bold text-white">Usuários Registrados na Plataforma</h3>
+        <!-- ABA 2: CLIENTES CADASTRADOS -->
+        <section id="sec-usuarios" class="hidden space-y-4">
+          <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-3xl overflow-hidden">
+            <div class="p-5 sm:p-6 border-b border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 class="text-base font-bold text-white">Contas Registradas</h3>
+                <p class="text-xs text-zinc-400">Acompanhe o saldo e consumo de cada usuário</p>
+              </div>
+              <input
+                id="busca-usuario"
+                oninput="filtrarUsuarios()"
+                type="text"
+                placeholder="Buscar por nome ou e-mail..."
+                class="bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-xs text-white px-4 py-2.5 rounded-xl w-full sm:w-64"
+              />
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs">
                 <thead class="bg-zinc-950 text-zinc-400 uppercase">
                   <tr>
-                    <th class="px-4 py-3">Nome</th>
-                    <th class="px-4 py-3">E-mail</th>
-                    <th class="px-4 py-3">Plano Atual</th>
-                    <th class="px-4 py-3">Saldo / VIP</th>
-                    <th class="px-4 py-3">Baixados</th>
-                    <th class="px-4 py-3">Cadastro</th>
+                    <th class="px-5 py-3.5">Usuário</th>
+                    <th class="px-5 py-3.5">E-mail</th>
+                    <th class="px-5 py-3.5">Plano Atual</th>
+                    <th class="px-5 py-3.5">Saldo</th>
+                    <th class="px-5 py-3.5">Baixados</th>
+                    <th class="px-5 py-3.5">Cadastro</th>
                   </tr>
                 </thead>
                 <tbody id="tabela-usuarios" class="divide-y divide-zinc-800"></tbody>
@@ -182,42 +256,82 @@
           </div>
         </section>
 
-        <!-- ABA 3: ALTERAR SENHA ADMIN -->
-        <section id="sec-seguranca" class="hidden max-w-md">
-          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
-            <h2 class="text-base font-bold text-white">Alterar Senha Mestra</h2>
-            <p class="text-xs text-zinc-400">
-              Atualiza a senha usada para acessar este painel administrativo.
-            </p>
+        <!-- ABA 3: SEGURANÇA & SENHA -->
+        <section id="sec-seguranca" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-3xl p-6 sm:p-8 space-y-5">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-rose-400">Credencial Mestra</span>
+              <h2 class="text-lg font-bold text-white mt-0.5">Alterar Senha Administrativa</h2>
+              <p class="text-xs text-zinc-400 mt-1">
+                Use uma senha forte (letras, números e símbolos). Todas as sessões anteriores expiram em 24h.
+              </p>
+            </div>
             <input
               id="nova-senha-admin"
               type="password"
-              placeholder="Nova senha (mínimo 4 caracteres)"
-              class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-2.5 rounded-xl"
+              placeholder="Nova senha forte (mín. 6 caracteres)"
+              class="w-full bg-zinc-950 border border-zinc-800 focus:border-rose-600 focus:outline-none text-sm text-white px-4 py-3 rounded-xl"
             />
             <button
               onclick="trocarSenhaAdmin()"
-              class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition cursor-pointer"
+              class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold px-6 py-3 rounded-xl transition cursor-pointer"
             >
               Salvar Nova Senha
             </button>
+          </div>
+
+          <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-3xl p-6 sm:p-8 space-y-4">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Camadas Ativas</span>
+            <h2 class="text-lg font-bold text-white">Status de Proteção do Painel</h2>
+            <ul class="space-y-3 text-xs text-zinc-300">
+              <li class="flex items-start gap-2.5">
+                <span class="text-emerald-400 font-bold">✓</span>
+                <span><strong>Bloqueio Anti-Brute-Force:</strong> 5 tentativas incorretas bloqueiam o IP por 30 minutos automaticamente.</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="text-emerald-400 font-bold">✓</span>
+                <span><strong>Token Assinado SHA-256:</strong> Sua senha real nunca fica salva no navegador.</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="text-emerald-400 font-bold">✓</span>
+                <span><strong>Isolamento Total:</strong> O painel do cliente não possui nenhuma rota nem código administrativo.</span>
+              </li>
+            </ul>
           </div>
         </section>
 
       </main>
     </div>
+
+    <!-- BOTTOM NAV MOBILE -->
+    <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-zinc-800/90 grid grid-cols-3 px-2 py-2">
+      <button onclick="mudarAbaAdmin('chaves')" id="mob-adm-chaves" class="flex flex-col items-center justify-center py-1 text-rose-500 font-bold cursor-pointer">
+        <span class="text-lg leading-none">🎟️</span>
+        <span class="text-[10px] mt-1">Chaves</span>
+      </button>
+      <button onclick="mudarAbaAdmin('usuarios')" id="mob-adm-usuarios" class="flex flex-col items-center justify-center py-1 text-zinc-400 font-medium cursor-pointer">
+        <span class="text-lg leading-none">👥</span>
+        <span class="text-[10px] mt-1">Clientes</span>
+      </button>
+      <button onclick="mudarAbaAdmin('seguranca')" id="mob-adm-seguranca" class="flex flex-col items-center justify-center py-1 text-zinc-400 font-medium cursor-pointer">
+        <span class="text-lg leading-none">🛡️</span>
+        <span class="text-[10px] mt-1">Segurança</span>
+      </button>
+    </nav>
+
   </div>
 
   <!-- Toast -->
-  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden px-4 py-3 rounded-xl text-sm font-medium shadow-xl border"></div>
+  <div id="toast" class="fixed top-16 right-4 z-50 hidden px-4 py-3 rounded-2xl text-xs font-semibold shadow-2xl border"></div>
 
   <script>
-    let adminToken = localStorage.getItem('trezzy_admin_token') || '';
+    let adminToken = localStorage.getItem('trezzy_admin_session') || '';
+    let listaUsuariosCache = [];
 
     function toast(msg, err = false) {
       const el = document.getElementById('toast');
       el.textContent = msg;
-      el.className = `fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl text-sm font-medium shadow-xl border ${
+      el.className = `fixed top-16 right-4 z-50 px-4 py-3 rounded-2xl text-xs font-semibold shadow-2xl border ${
         err ? 'bg-red-950 border-red-700 text-red-100' : 'bg-emerald-950 border-emerald-700 text-emerald-100'
       }`;
       el.classList.remove('hidden');
@@ -238,18 +352,18 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        errEl.textContent = data.error || 'Senha incorreta.';
+        errEl.textContent = data.error || 'Acesso negado.';
         errEl.classList.remove('hidden');
         return;
       }
 
       adminToken = data.token;
-      localStorage.setItem('trezzy_admin_token', adminToken);
+      localStorage.setItem('trezzy_admin_session', adminToken);
       iniciarAdmin();
     });
 
     function adminLogout() {
-      localStorage.removeItem('trezzy_admin_token');
+      localStorage.removeItem('trezzy_admin_session');
       adminToken = '';
       document.getElementById('admin-shell').classList.add('hidden');
       document.getElementById('admin-login').classList.remove('hidden');
@@ -259,19 +373,60 @@
     function mudarAbaAdmin(aba) {
       ['chaves', 'usuarios', 'seguranca'].forEach((id) => {
         document.getElementById(`sec-${id}`).classList.add('hidden');
-        document.getElementById(`nav-${id}`).className =
-          'nav-adm flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-zinc-400 hover:bg-zinc-800 hover:text-white cursor-pointer whitespace-nowrap';
+        document.getElementById(`desk-adm-${id}`).className =
+          'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-zinc-400 hover:bg-zinc-800/70 hover:text-white cursor-pointer transition';
+        document.getElementById(`mob-adm-${id}`).className =
+          'flex flex-col items-center justify-center py-1 text-zinc-400 font-medium cursor-pointer';
       });
+
       document.getElementById(`sec-${aba}`).classList.remove('hidden');
-      document.getElementById(`nav-${aba}`).className =
-        'nav-adm flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold bg-rose-600/15 text-rose-400 border border-rose-600/30 cursor-pointer whitespace-nowrap';
+      document.getElementById(`desk-adm-${aba}`).className =
+        'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold bg-rose-600 text-white shadow-md shadow-rose-600/20 cursor-pointer transition';
+      document.getElementById(`mob-adm-${aba}`).className =
+        'flex flex-col items-center justify-center py-1 text-rose-500 font-bold cursor-pointer';
 
       const titulos = {
-        chaves: 'Gerenciador de Chaves de Ativação',
-        usuarios: 'Contas Cadastradas no Sistema',
-        seguranca: 'Configurações de Segurança',
+        chaves: 'Gerenciador de Chaves & Planos',
+        usuarios: 'Clientes Cadastrados no Sistema',
+        seguranca: 'Segurança & Credenciais',
       };
       document.getElementById('adm-title').textContent = titulos[aba];
+    }
+
+    function renderizarUsuarios(lista) {
+      const tbodyUsers = document.getElementById('tabela-usuarios');
+      tbodyUsers.innerHTML = '';
+      if (lista.length === 0) {
+        tbodyUsers.innerHTML = `<tr><td colspan="6" class="px-5 py-6 text-center text-zinc-500">Nenhum usuário encontrado.</td></tr>`;
+        return;
+      }
+
+      lista.forEach((u) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-5 py-3.5 font-bold text-white">${u.name}</td>
+          <td class="px-5 py-3.5 text-zinc-300">${u.email}</td>
+          <td class="px-5 py-3.5">
+            <span class="bg-zinc-800 border border-zinc-700 px-2.5 py-1 rounded-lg text-[11px] font-medium text-zinc-200">
+              ${u.plan_name}
+            </span>
+          </td>
+          <td class="px-5 py-3.5 font-bold ${u.is_vip ? 'text-amber-400' : 'text-emerald-400'}">
+            ${u.is_vip ? '👑 VIP Ilimitado' : `${u.credits} créditos`}
+          </td>
+          <td class="px-5 py-3.5 text-zinc-300">${u.downloads_used || 0}</td>
+          <td class="px-5 py-3.5 text-zinc-500">${new Date(u.created_at).toLocaleDateString('pt-BR')}</td>
+        `;
+        tbodyUsers.appendChild(tr);
+      });
+    }
+
+    function filtrarUsuarios() {
+      const q = document.getElementById('busca-usuario').value.toLowerCase().trim();
+      const filtrados = listaUsuariosCache.filter(
+        (u) => (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q)
+      );
+      renderizarUsuarios(filtrados);
     }
 
     async function carregarDadosAdmin() {
@@ -284,6 +439,7 @@
       }
 
       const { codes = [], users = [] } = await res.json();
+      listaUsuariosCache = users;
 
       const disponiveis = codes.filter((c) => !c.redeemed_by);
       const resgatadas = codes.filter((c) => Boolean(c.redeemed_by));
@@ -293,60 +449,43 @@
       document.getElementById('kpi-codes-open').textContent = disponiveis.length;
       document.getElementById('kpi-codes-used').textContent = resgatadas.length;
       document.getElementById('kpi-downloads').textContent = totalDownloads;
+      document.getElementById('badge-qtd-chaves').textContent = `${codes.length} chaves`;
 
-      // Renderiza Tabela de Chaves
       const tbodyChaves = document.getElementById('tabela-chaves');
       tbodyChaves.innerHTML = '';
-
       const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
 
       codes.forEach((c) => {
         const resgatadoPor = c.redeemed_by ? userMap[c.redeemed_by] : null;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="px-4 py-3 font-mono font-bold text-white">${c.code}</td>
-          <td class="px-4 py-3 text-zinc-300">${c.label}</td>
-          <td class="px-4 py-3">
-            <span class="bg-zinc-800 border border-zinc-700 text-zinc-200 px-2 py-0.5 rounded text-[10px] font-semibold">
+          <td class="px-5 py-3.5 font-mono font-bold text-white whitespace-nowrap">${c.code}</td>
+          <td class="px-5 py-3.5 text-zinc-300">${c.label}</td>
+          <td class="px-5 py-3.5">
+            <span class="bg-zinc-800 border border-zinc-700 text-zinc-200 px-2.5 py-1 rounded-lg text-[10px] font-semibold whitespace-nowrap">
               ${c.plan_name}
             </span>
           </td>
-          <td class="px-4 py-3">
+          <td class="px-5 py-3.5">
             ${
               c.redeemed_by
-                ? `<span class="text-zinc-400">Resgatada por <strong class="text-white">${resgatadoPor ? resgatadoPor.email : 'Usuário'}</strong></span>`
-                : `<span class="text-emerald-400 font-bold">DISPONÍVEL</span>`
+                ? `<span class="text-zinc-400">Usada por <strong class="text-white">${resgatadoPor ? resgatadoPor.email : 'Cliente'}</strong></span>`
+                : `<span class="inline-flex items-center gap-1 text-emerald-400 font-bold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> DISPONÍVEL</span>`
             }
           </td>
-          <td class="px-4 py-3 text-right space-x-2">
+          <td class="px-5 py-3.5 text-right space-x-2 whitespace-nowrap">
             ${
               !c.redeemed_by
-                ? `<button onclick="copiarChave('${c.code}')" class="bg-zinc-800 hover:bg-zinc-700 text-white px-2.5 py-1 rounded cursor-pointer">Copiar</button>`
+                ? `<button onclick="copiarChave('${c.code}')" class="bg-zinc-800 hover:bg-zinc-700 text-white font-semibold px-3 py-1.5 rounded-lg cursor-pointer">Copiar</button>`
                 : ''
             }
-            <button onclick="excluirChave('${c.code}')" class="bg-red-950/80 hover:bg-red-900 text-red-300 px-2.5 py-1 rounded cursor-pointer">Excluir</button>
+            <button onclick="excluirChave('${c.code}')" class="bg-red-950/80 hover:bg-red-900 text-red-300 font-semibold px-3 py-1.5 rounded-lg cursor-pointer">Excluir</button>
           </td>
         `;
         tbodyChaves.appendChild(tr);
       });
 
-      // Renderiza Tabela de Usuários
-      const tbodyUsers = document.getElementById('tabela-usuarios');
-      tbodyUsers.innerHTML = '';
-      users.forEach((u) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="px-4 py-3 font-bold text-white">${u.name}</td>
-          <td class="px-4 py-3 text-zinc-300">${u.email}</td>
-          <td class="px-4 py-3 text-zinc-300">${u.plan_name}</td>
-          <td class="px-4 py-3 font-bold ${u.is_vip ? 'text-amber-400' : 'text-emerald-400'}">
-            ${u.is_vip ? '👑 VIP Ilimitado' : `${u.credits} créditos`}
-          </td>
-          <td class="px-4 py-3 text-zinc-300">${u.downloads_used || 0}</td>
-          <td class="px-4 py-3 text-zinc-500">${new Date(u.created_at).toLocaleDateString('pt-BR')}</td>
-        `;
-        tbodyUsers.appendChild(tr);
-      });
+      renderizarUsuarios(users);
     }
 
     async function gerarChave() {
@@ -374,7 +513,7 @@
 
     function copiarChave(code) {
       navigator.clipboard.writeText(code);
-      toast(`Chave ${code} copiada para enviar ao cliente!`);
+      toast(`Chave ${code} copiada!`);
     }
 
     async function excluirChave(code) {
@@ -388,6 +527,10 @@
 
     async function trocarSenhaAdmin() {
       const newPassword = document.getElementById('nova-senha-admin').value.trim();
+      if (newPassword.length < 6) {
+        toast('Use pelo menos 6 caracteres para maior segurança.', true);
+        return;
+      }
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: {
@@ -402,7 +545,7 @@
         return;
       }
       adminToken = data.token;
-      localStorage.setItem('trezzy_admin_token', adminToken);
+      localStorage.setItem('trezzy_admin_session', adminToken);
       document.getElementById('nova-senha-admin').value = '';
       toast('Senha mestra atualizada com sucesso!');
     }
