@@ -56,12 +56,20 @@ async function getAdminPassword(env: Env): Promise<string> {
 }
 
 function getSbKey(env: Env): string {
-  return env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || '';
+  return (env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 }
 
 async function sbFetch(env: Env, path: string, init: RequestInit = {}): Promise<Response> {
-  const baseUrl = env.SUPABASE_URL.replace(/\/+$/, '');
+  const baseUrl = (env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
   const key = getSbKey(env);
+
+  if (!baseUrl || !key) {
+    return new Response(
+      JSON.stringify({ message: 'Variáveis SUPABASE_URL ou SUPABASE_SECRET_KEY ausentes no Worker.' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   return fetch(`${baseUrl}/rest/v1/${path}`, {
     ...init,
     headers: {
@@ -73,8 +81,15 @@ async function sbFetch(env: Env, path: string, init: RequestInit = {}): Promise<
   });
 }
 
-async function enviarCodigoResend(env: Env, toEmail: string, name: string, code: string): Promise<boolean> {
-  if (!env.RESEND_API_KEY) return false;
+async function enviarCodigoResend(
+  env: Env,
+  toEmail: string,
+  name: string,
+  code: string
+): Promise<{ ok: boolean; error?: string }> {
+  if (!env.RESEND_API_KEY) {
+    return { ok: false, error: 'RESEND_API_KEY não configurada.' };
+  }
   const from = env.RESEND_FROM_EMAIL || 'Trezzy 3D <onboarding@resend.dev>';
 
   const res = await fetch('https://api.resend.com/emails', {
@@ -101,7 +116,12 @@ async function enviarCodigoResend(env: Env, toEmail: string, name: string, code:
     }),
   });
 
-  return res.ok;
+  if (!res.ok) {
+    const detail = await res.text();
+    return { ok: false, error: detail };
+  }
+
+  return { ok: true };
 }
 
 export default {
@@ -144,86 +164,114 @@ export default {
 
     // 2. Criar Conta + Envio de Código via Resend
     if (url.pathname === '/api/auth/register' && request.method === 'POST') {
-      const body = (await request.json()) as {
-        name?: string;
-        email?: string;
-        password?: string;
-        redeemCode?: string;
-      };
+      try {
+        const body = (await request.json()) as {
+          name?: string;
+          email?: string;
+          password?: string;
+          redeemCode?: string;
+        };
 
-      const name = (body.name || '').trim();
-      const email = (body.email || '').trim().toLowerCase();
-      const password = (body.password || '').trim();
-      const redeemCode = (body.redeemCode || '').trim().toUpperCase();
+        const name = (body.name || '').trim();
+        const email = (body.email || '').trim().toLowerCase();
+        const password = (body.password || '').trim();
+        const redeemCode = (body.redeemCode || '').trim().toUpperCase();
 
-      if (!name || !email || password.length < 4) {
-        return jsonResponse({ error: 'Preencha nome, e-mail e senha (mínimo 4 caracteres).' }, 400);
-      }
-
-      const existingRes = await sbFetch(
-        env,
-        `trezzy_users?email=eq.${encodeURIComponent(email)}&select=id,verified`
-      );
-      const existing = (await existingRes.json()) as any[];
-      if (existing.length > 0 && existing[0].verified) {
-        return jsonResponse({ error: 'Este e-mail já está cadastrado e ativo.' }, 409);
-      }
-
-      const password_hash = await hashPassword(password);
-      const code6 = String(Math.floor(100000 + Math.random() * 900000));
-      const usarResend = Boolean(env.RESEND_API_KEY);
-
-      let userId: string;
-
-      if (existing.length > 0 && !existing[0].verified) {
-        // Reenvia código para conta pendente
-        userId = existing[0].id;
-        await sbFetch(env, `trezzy_users?id=eq.${userId}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            name,
-            password_hash,
-            verification_code: code6,
-            verified: !usarResend,
-          }),
-        });
-      } else {
-        const createRes = await sbFetch(env, 'trezzy_users', {
-          method: 'POST',
-          headers: { Prefer: 'return=representation' },
-          body: JSON.stringify({
-            name,
-            email,
-            password_hash,
-            plan_name: 'Conta Gratuita (1 Teste)',
-            credits: 1,
-            is_vip: false,
-            verified: !usarResend,
-            verification_code: usarResend ? code6 : null,
-          }),
-        });
-
-        if (!createRes.ok) {
-          return jsonResponse({ error: 'Erro ao criar conta no Supabase.' }, 500);
+        if (!name || !email || password.length < 4) {
+          return jsonResponse({ error: 'Preencha nome, e-mail e senha (mínimo 4 caracteres).' }, 400);
         }
-        const created = (await createRes.json()) as any[];
-        userId = created[0].id;
-      }
 
-      if (redeemCode) {
-        await aplicarCodigoNaConta(env, userId, redeemCode);
-      }
+        const existingRes = await sbFetch(
+          env,
+          `trezzy_users?email=eq.${encodeURIComponent(email)}&select=id,verified`
+        );
 
-      if (usarResend) {
-        await enviarCodigoResend(env, email, name, code6);
-        return jsonResponse({
-          requiresVerification: true,
-          email,
-          message: 'Enviamos um código de 6 dígitos para o seu e-mail!',
-        });
-      }
+        if (!existingRes.ok) {
+          const errText = await existingRes.text();
+          return jsonResponse(
+            { error: `Erro ao consultar Supabase (${existingRes.status}): ${errText}` },
+            500
+          );
+        }
 
-      return jsonResponse({ token: userId });
+        const existing = (await existingRes.json()) as any[];
+        if (existing.length > 0 && existing[0].verified) {
+          return jsonResponse({ error: 'Este e-mail já está cadastrado e ativo.' }, 409);
+        }
+
+        const password_hash = await hashPassword(password);
+        const code6 = String(Math.floor(100000 + Math.random() * 900000));
+        const usarResend = Boolean(env.RESEND_API_KEY);
+
+        let userId: string;
+
+        if (existing.length > 0 && !existing[0].verified) {
+          userId = existing[0].id;
+          const updRes = await sbFetch(env, `trezzy_users?id=eq.${userId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              name,
+              password_hash,
+              verification_code: code6,
+              verified: !usarResend,
+            }),
+          });
+          if (!updRes.ok) {
+            const errDetail = await updRes.text();
+            return jsonResponse({ error: `Erro Supabase (${updRes.status}): ${errDetail}` }, 500);
+          }
+        } else {
+          const createRes = await sbFetch(env, 'trezzy_users', {
+            method: 'POST',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({
+              name,
+              email,
+              password_hash,
+              plan_name: 'Conta Gratuita (1 Teste)',
+              credits: 1,
+              is_vip: false,
+              verified: !usarResend,
+              verification_code: usarResend ? code6 : null,
+            }),
+          });
+
+          if (!createRes.ok) {
+            const errDetail = await createRes.text();
+            console.error('[SUPABASE_REGISTER_ERROR]', createRes.status, errDetail);
+            return jsonResponse(
+              { error: `Erro Supabase (${createRes.status}): ${errDetail}` },
+              500
+            );
+          }
+
+          const created = (await createRes.json()) as any[];
+          userId = created[0].id;
+        }
+
+        if (redeemCode) {
+          await aplicarCodigoNaConta(env, userId, redeemCode);
+        }
+
+        if (usarResend) {
+          const mailResult = await enviarCodigoResend(env, email, name, code6);
+          if (!mailResult.ok) {
+            return jsonResponse(
+              { error: `Conta criada, mas falhou o envio do e-mail Resend: ${mailResult.error}` },
+              500
+            );
+          }
+          return jsonResponse({
+            requiresVerification: true,
+            email,
+            message: 'Enviamos um código de 6 dígitos para o seu e-mail!',
+          });
+        }
+
+        return jsonResponse({ token: userId });
+      } catch (err: any) {
+        return jsonResponse({ error: `Falha inesperada: ${err?.message || err}` }, 500);
+      }
     }
 
     // 2.1. Confirmar Código de Ativação enviado pelo Resend
@@ -236,6 +284,11 @@ export default {
         env,
         `trezzy_users?email=eq.${encodeURIComponent(email)}&verification_code=eq.${encodeURIComponent(code)}&select=id`
       );
+      if (!res.ok) {
+        const errDetail = await res.text();
+        return jsonResponse({ error: `Erro Supabase (${res.status}): ${errDetail}` }, 500);
+      }
+
       const rows = (await res.json()) as any[];
       if (!rows[0]) {
         return jsonResponse({ error: 'Código de ativação incorreto.' }, 400);
@@ -277,6 +330,11 @@ export default {
         env,
         `trezzy_users?email=eq.${encodeURIComponent(email)}&password_hash=eq.${password_hash}&select=*`
       );
+      if (!res.ok) {
+        const errDetail = await res.text();
+        return jsonResponse({ error: `Erro Supabase (${res.status}): ${errDetail}` }, 500);
+      }
+
       const users = (await res.json()) as any[];
 
       if (!users[0]) {
@@ -285,7 +343,11 @@ export default {
 
       if (users[0].verified === false) {
         return jsonResponse(
-          { requiresVerification: true, email, error: 'Confirme o código enviado para seu e-mail antes de entrar.' },
+          {
+            requiresVerification: true,
+            email,
+            error: 'Confirme o código enviado para seu e-mail antes de entrar.',
+          },
           403
         );
       }
@@ -306,10 +368,16 @@ export default {
         ),
       ]);
 
+      if (!userRes.ok) {
+        return jsonResponse({ error: 'Erro ao carregar perfil.' }, 500);
+      }
+
       const users = (await userRes.json()) as any[];
       if (!users[0]) return jsonResponse({ error: 'Conta não encontrada.' }, 401);
 
       const u = users[0];
+      const history = histRes.ok ? await histRes.json() : [];
+
       return jsonResponse({
         id: u.id,
         name: u.name,
@@ -318,7 +386,7 @@ export default {
         isVip: u.is_vip,
         credits: u.credits,
         downloadsUsed: u.downloads_used,
-        history: await histRes.json(),
+        history,
       });
     }
 
@@ -356,6 +424,30 @@ export default {
       return jsonResponse({ success: true });
     }
 
+    // 6.1 Alterar Senha Administrativa
+    if (url.pathname === '/api/auth/change-password' && request.method === 'POST') {
+      const authHeader = request.headers.get('Authorization') || '';
+      const currentToken = authHeader.replace(/^Bearer\s+/i, '').trim();
+      const adminPass = await getAdminPassword(env);
+
+      if (currentToken !== adminPass) {
+        return jsonResponse({ error: 'Acesso negado.' }, 403);
+      }
+
+      const body = (await request.json()) as { newPassword?: string };
+      const newPass = (body.newPassword || '').trim();
+      if (newPass.length < 4) {
+        return jsonResponse({ error: 'Mínimo de 4 caracteres.' }, 400);
+      }
+
+      if (!env.TREZZY_KV) {
+        return jsonResponse({ error: 'Binding TREZZY_KV ausente.' }, 500);
+      }
+
+      await env.TREZZY_KV.put('ADMIN_CUSTOM_PASSWORD', newPass);
+      return jsonResponse({ success: true, token: newPass });
+    }
+
     // 7. Painel Admin
     if (url.pathname === '/api/admin/overview') {
       const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
@@ -365,12 +457,15 @@ export default {
 
       const [codesRes, usersRes] = await Promise.all([
         sbFetch(env, 'trezzy_redeem_codes?order=created_at.desc'),
-        sbFetch(env, 'trezzy_users?select=id,name,email,plan_name,is_vip,credits,downloads_used,created_at&order=created_at.desc'),
+        sbFetch(
+          env,
+          'trezzy_users?select=id,name,email,plan_name,is_vip,credits,downloads_used,created_at&order=created_at.desc'
+        ),
       ]);
 
       return jsonResponse({
-        codes: await codesRes.json(),
-        users: await usersRes.json(),
+        codes: codesRes.ok ? await codesRes.json() : [],
+        users: usersRes.ok ? await usersRes.json() : [],
       });
     }
 
@@ -399,6 +494,11 @@ export default {
             is_vip: cfg.isVip,
           }),
         });
+
+        if (!res.ok) {
+          const errDetail = await res.text();
+          return jsonResponse({ error: `Erro Supabase (${res.status}): ${errDetail}` }, 500);
+        }
 
         const rows = (await res.json()) as any[];
         return jsonResponse({ code: rows[0] });
@@ -471,10 +571,36 @@ export default {
         let keyEncontrada: string | null = null;
         for (const candidato of candidatos) {
           const encodedKey = candidato.split('/').map((p) => encodeURIComponent(p)).join('/');
-          const signedHead = await r2.sign(new Request(`${baseBucketUrl}/${encodedKey}`, { method: 'HEAD' }));
+          const signedHead = await r2.sign(
+            new Request(`${baseBucketUrl}/${encodedKey}`, { method: 'HEAD' })
+          );
           if ((await fetch(signedHead)).ok) {
             keyEncontrada = encodedKey;
             break;
+          }
+        }
+
+        if (!keyEncontrada) {
+          const listUrl = new URL(baseBucketUrl);
+          listUrl.searchParams.set('list-type', '2');
+          listUrl.searchParams.set('max-keys', '1000');
+
+          const signedList = await r2.sign(new Request(listUrl.toString(), { method: 'GET' }));
+          const listRes = await fetch(signedList);
+
+          if (listRes.ok) {
+            const xml = await listRes.text();
+            const keyMatches = [...xml.matchAll(/<Key>(.*?)<\/Key>/g)].map((m) => m[1]);
+            const foundRawKey = keyMatches.find(
+              (k) => k === onlyFilename || k.endsWith(`/${onlyFilename}`)
+            );
+
+            if (foundRawKey) {
+              keyEncontrada = foundRawKey
+                .split('/')
+                .map((part) => encodeURIComponent(part))
+                .join('/');
+            }
           }
         }
 
@@ -532,6 +658,10 @@ async function aplicarCodigoNaConta(
     env,
     `trezzy_redeem_codes?code=eq.${encodeURIComponent(code)}&select=*`
   );
+  if (!codeRes.ok) {
+    return { ok: false, error: 'Erro ao validar chave no banco de dados.' };
+  }
+
   const codes = (await codeRes.json()) as any[];
   const record = codes[0];
 
